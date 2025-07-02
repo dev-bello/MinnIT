@@ -1,542 +1,311 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, auth, db } from '../lib/supabase';
 
 const AuthContext = createContext(undefined);
 
-// Mock users for demonstration
-const mockUsers = [
-  {
-    id: '1',
-    email: 'admin@example.com',
-    password: 'admin123',
-    name: 'System Administrator',
-    role: 'admin',
-    phone: '+2348012345678',
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '2',
-    email: 'guard001@example.com',
-    password: 'guard123',
-    name: 'Security Guard Alpha',
-    role: 'guard',
-    uniqueId: 'GRD001',
-    phone: '+2348023456789',
-    shiftSchedule: 'Morning (6AM - 2PM)',
-    emergencyContact: '+2348034567890',
-    address: '123 Security Street, Lagos',
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '3',
-    email: 'resident001@example.com',
-    password: 'resident123',
-    name: 'John Resident',
-    role: 'resident',
-    uniqueId: 'RES001',
-    phone: '+2348045678901',
-    // Personal Info Layer (self-editable)
-    personalInfo: {
-      dateOfBirth: '1985-03-15',
-      gender: 'Male',
-      nationality: 'Nigerian',
-      emergencyContact: '+2348056789012',
-      emergencyContactName: 'Sarah Resident',
-      emergencyContactRelation: 'Spouse'
-    },
-    // Residency Layer (admin-controlled)
-    residencyInfo: {
-      apartmentNumber: 'A-101',
-      block: 'A',
-      floor: '1',
-      apartmentType: '2 Bedroom',
-      leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31',
-      monthlyRent: 150000,
-      paymentStatus: 'current',
-      maintenanceRequests: []
-    },
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '4',
-    email: 'eze@example.com',
-    password: 'eze123',
-    name: 'Eze',
-    role: 'guard',
-    uniqueId: 'GRD002',
-    phone: '+2348067890123',
-    shiftSchedule: 'Morning (6AM - 2PM)',
-    emergencyContact: '+2348078901234',
-    address: '456 Guard Avenue, Lagos',
-    createdAt: '2024-01-02T00:00:00Z'
-  },
-  {
-    id: '5',
-    email: 'bello@example.com',
-    password: 'bello123',
-    name: 'Bello',
-    role: 'guard',
-    uniqueId: 'GRD003',
-    phone: '+2348089012345',
-    shiftSchedule: 'Evening (2PM - 10PM)',
-    emergencyContact: '+2348090123456',
-    address: '789 Security Road, Lagos',
-    createdAt: '2024-01-03T00:00:00Z'
-  },
-  {
-    id: '6',
-    email: 'yusuf@example.com',
-    password: 'yusuf123',
-    name: 'Yusuf',
-    role: 'guard',
-    uniqueId: 'GRD004',
-    phone: '+2348001234567',
-    shiftSchedule: 'Night (10PM - 6AM)',
-    emergencyContact: '+2348012345678',
-    address: '321 Night Watch Street, Lagos',
-    createdAt: '2024-01-04T00:00:00Z'
-  }
-];
-
-// Mock residency requests for residents
-export const mockResidencyRequests = [
-  {
-    id: '1',
-    residentId: '3',
-    type: 'apartment_change',
-    currentApartment: 'A-101',
-    requestedApartment: 'B-205',
-    reason: 'Need larger space for family',
-    status: 'pending',
-    submittedAt: '2024-01-15T00:00:00Z',
-    adminNotes: ''
-  },
-  {
-    id: '2',
-    residentId: '3',
-    type: 'maintenance_request',
-    apartment: 'A-101',
-    issue: 'Leaking faucet in kitchen',
-    priority: 'medium',
-    status: 'approved',
-    submittedAt: '2024-01-10T00:00:00Z',
-    adminNotes: 'Maintenance team will visit on Monday'
-  }
-];
-
-// Mock notifications
-const mockNotifications = [
-  {
-    id: '1',
-    userId: '1', // Admin
-    type: 'residency_request',
-    title: 'New Residency Request',
-    message: 'John Resident submitted a maintenance request for apartment A-101',
-    isRead: false,
-    createdAt: '2024-01-15T10:30:00Z',
-    data: { requestId: '1' }
-  },
-  {
-    id: '2',
-    userId: '3', // Resident
-    type: 'request_update',
-    title: 'Request Approved',
-    message: 'Your maintenance request has been approved. Maintenance team will visit on Monday.',
-    isRead: false,
-    createdAt: '2024-01-10T14:20:00Z',
-    data: { requestId: '2' }
-  },
-  {
-    id: '3',
-    userId: '2', // Guard
-    type: 'profile_update',
-    title: 'Profile Updated',
-    message: 'Your profile information has been updated by the administrator.',
-    isRead: false,
-    createdAt: '2024-01-12T09:15:00Z'
-  }
-];
-
-// Mock data stores
-export const mockGuards = [
-  {
-    id: '2',
-    uniqueId: 'GRD001',
-    name: 'Security Guard Alpha',
-    email: 'guard001@example.com',
-    phone: '+2348023456789',
-    shiftSchedule: 'Morning (6AM - 2PM)',
-    emergencyContact: '+2348034567890',
-    address: '123 Security Street, Lagos',
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '4',
-    uniqueId: 'GRD002',
-    name: 'Eze',
-    email: 'eze@example.com',
-    phone: '+2348067890123',
-    shiftSchedule: 'Morning (6AM - 2PM)',
-    emergencyContact: '+2348078901234',
-    address: '456 Guard Avenue, Lagos',
-    createdAt: '2024-01-02T00:00:00Z'
-  },
-  {
-    id: '5',
-    uniqueId: 'GRD003',
-    name: 'Bello',
-    email: 'bello@example.com',
-    phone: '+2348089012345',
-    shiftSchedule: 'Evening (2PM - 10PM)',
-    emergencyContact: '+2348090123456',
-    address: '789 Security Road, Lagos',
-    createdAt: '2024-01-03T00:00:00Z'
-  },
-  {
-    id: '6',
-    uniqueId: 'GRD004',
-    name: 'Yusuf',
-    email: 'yusuf@example.com',
-    phone: '+2348001234567',
-    shiftSchedule: 'Night (10PM - 6AM)',
-    emergencyContact: '+2348012345678',
-    address: '321 Night Watch Street, Lagos',
-    createdAt: '2024-01-04T00:00:00Z'
-  }
-];
-
-export const mockResidents = [
-  {
-    id: '3',
-    uniqueId: 'RES001',
-    name: 'John Resident',
-    email: 'resident001@example.com',
-    phone: '+2348045678901',
-    apartmentNumber: 'A-101',
-    status: 'active',
-    personalInfo: {
-      dateOfBirth: '1985-03-15',
-      gender: 'Male',
-      nationality: 'Nigerian',
-      emergencyContact: '+2348056789012',
-      emergencyContactName: 'Sarah Resident',
-      emergencyContactRelation: 'Spouse'
-    },
-    residencyInfo: {
-      apartmentNumber: 'A-101',
-      block: 'A',
-      floor: '1',
-      apartmentType: '2 Bedroom',
-      leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31',
-      monthlyRent: 150000,
-      paymentStatus: 'current',
-      maintenanceRequests: []
-    },
-    createdAt: '2024-01-01T00:00:00Z',
-    canEdit: false
-  },
-  {
-    id: '5',
-    uniqueId: 'RES002',
-    name: 'Jane Smith',
-    email: 'resident002@example.com',
-    phone: '+2348098765432',
-    apartmentNumber: 'B-205',
-    status: 'active',
-    personalInfo: {
-      dateOfBirth: '1990-07-22',
-      gender: 'Female',
-      nationality: 'Nigerian',
-      emergencyContact: '+2348098765433',
-      emergencyContactName: 'Mike Smith',
-      emergencyContactRelation: 'Brother'
-    },
-    residencyInfo: {
-      apartmentNumber: 'B-205',
-      block: 'B',
-      floor: '2',
-      apartmentType: '1 Bedroom',
-      leaseStartDate: '2023-06-01',
-      leaseEndDate: '2024-05-31',
-      monthlyRent: 120000,
-      paymentStatus: 'current',
-      maintenanceRequests: []
-    },
-    createdAt: '2024-01-02T00:00:00Z',
-    canEdit: true
-  }
-];
-
-export const mockVisitorInvites = [
-  {
-    id: '1',
-    residentId: '3',
-    visitorName: 'Mike Johnson',
-    visitorPhone: '+1234567890',
-    visitDate: '2024-01-15',
-    visitTime: '14:30',
-    purpose: 'Business Meeting',
-    code: 'VIS001',
-    status: 'approved',
-    createdAt: '2024-01-10T00:00:00Z'
-  },
-  {
-    id: '2',
-    residentId: '3',
-    visitorName: 'Sarah Wilson',
-    visitorPhone: '+0987654321',
-    visitDate: '2024-01-16',
-    visitTime: '10:00',
-    purpose: 'Personal Visit',
-    code: 'VIS002',
-    status: 'approved',
-    createdAt: '2024-01-11T00:00:00Z'
-  }
-];
-
-// Notification types:
-// - profile_update_request: Sent to admin when a user requests a profile update
-// - profile_updated: Sent to user when admin updates their profile
-//
-// To integrate with a backend, replace setNotifications/addNotification with API calls.
-
 export const AuthProvider = ({ children }) => {
-  // Hydrate users and notifications from sessionStorage if available
-  const sessionUsers = sessionStorage.getItem('allUsers');
-  const sessionNotifications = sessionStorage.getItem('notifications');
-
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [allUsers, setAllUsers] = useState(sessionUsers ? JSON.parse(sessionUsers) : mockUsers);
-  const [residencyRequests, setResidencyRequests] = useState(mockResidencyRequests);
-  const [notifications, setNotifications] = useState(sessionNotifications ? JSON.parse(sessionNotifications) : []);
+  const [currentEstate, setCurrentEstate] = useState(null);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        localStorage.removeItem('user');
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        await loadUserProfile(session.user.id);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setUserProfile(null);
+        setCurrentEstate(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Sync allUsers and notifications to sessionStorage on change
-  useEffect(() => {
-    sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
-  }, [allUsers]);
+  const loadUserProfile = async (userId) => {
+    try {
+      // Check if user is a developer (has estates)
+      const { data: estates } = await supabase
+        .from('estates')
+        .select('*')
+        .eq('developer_id', userId);
 
-  useEffect(() => {
-    sessionStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
+      if (estates && estates.length > 0) {
+        setUserProfile({
+          role: 'developer',
+          estates: estates,
+          name: user?.user_metadata?.name || 'Developer'
+        });
+        return;
+      }
+
+      // Check if user is an estate admin
+      const { data: adminProfile } = await supabase
+        .from('estate_admins')
+        .select(`
+          *,
+          estates(*)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (adminProfile) {
+        setUserProfile({
+          role: 'admin',
+          ...adminProfile,
+          estate: adminProfile.estates
+        });
+        setCurrentEstate(adminProfile.estates);
+        return;
+      }
+
+      // Check if user is a guard
+      const { data: guardProfile } = await supabase
+        .from('guards')
+        .select(`
+          *,
+          estates(*)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (guardProfile) {
+        setUserProfile({
+          role: 'guard',
+          ...guardProfile,
+          estate: guardProfile.estates
+        });
+        setCurrentEstate(guardProfile.estates);
+        return;
+      }
+
+      // Check if user is a resident
+      const { data: residentProfile } = await supabase
+        .from('residents')
+        .select(`
+          *,
+          estates(*)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (residentProfile) {
+        setUserProfile({
+          role: 'resident',
+          ...residentProfile,
+          estate: residentProfile.estates
+        });
+        setCurrentEstate(residentProfile.estates);
+        return;
+      }
+
+      // Default profile if no specific role found
+      setUserProfile({
+        role: 'user',
+        name: user?.user_metadata?.name || user?.email || 'User'
+      });
+
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const login = async (email, password) => {
-    setIsLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = allUsers.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const { user: authUser } = await auth.signIn(email, password);
       return true;
-    }
-    
-    setIsLoading(false);
-    return false;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
-
-  // --- Notification helpers ---
-  const addNotification = (notification) => {
-    const newNotification = {
-      ...notification,
-      id: Date.now().toString(),
-      isRead: false,
-      createdAt: new Date().toISOString()
-    };
-    setNotifications(prev => {
-      const updated = [...prev, newNotification];
-      sessionStorage.setItem('notifications', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const markNotificationAsRead = (notificationId) => {
-    setNotifications(prev => {
-      const updated = prev.map(notif => notif.id === notificationId ? { ...notif, isRead: true } : notif);
-      sessionStorage.setItem('notifications', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const markAllNotificationsAsRead = (userId) => {
-    setNotifications(prev => {
-      const updated = prev.map(notif => notif.userId === userId ? { ...notif, isRead: true } : notif);
-      sessionStorage.setItem('notifications', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const getUserNotifications = (userId) => {
-    return notifications.filter(notif => notif.userId === userId);
-  };
-
-  // --- Profile update request (user -> admin) ---
-  const requestProfileUpdate = (requestingUser) => {
-    addNotification({
-      userId: '1', // Admin
-      type: 'profile_update_request',
-      title: 'Profile Update Request',
-      message: `${requestingUser.name} (${requestingUser.role}) updated their profile.`,
-      data: { userId: requestingUser.id }
-    });
-  };
-
-  // --- Profile updated by admin (admin -> user) ---
-  const notifyProfileUpdated = (targetUser) => {
-    addNotification({
-      userId: targetUser.id,
-      type: 'profile_updated',
-      title: 'Profile Updated',
-      message: 'Your profile information has been updated by the administrator.',
-      data: { userId: targetUser.id }
-    });
-  };
-
-  // --- Profile update logic ---
-  // Anyone can edit their own profile; admin can edit anyone's profile
-  const updatePersonalInfo = (userId, personalInfo, email, phone) => {
-    setAllUsers(prev => {
-      const updated = prev.map(u =>
-        u.id === userId
-          ? { ...u, personalInfo: { ...u.personalInfo, ...personalInfo }, ...(email && { email }), ...(phone && { phone }) }
-          : u
-      );
-      sessionStorage.setItem('allUsers', JSON.stringify(updated));
-      return updated;
-    });
-    // If editing self, update user state and localStorage
-    if (user && user.id === userId) {
-      const updatedUser = {
-        ...user,
-        personalInfo: { ...user.personalInfo, ...personalInfo },
-        ...(email && { email }),
-        ...(phone && { phone })
-      };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      // Notify admin of self-edit
-      if (user.role !== 'admin') requestProfileUpdate(updatedUser);
-    } else if (user && user.role === 'admin') {
-      // If admin edits someone else, notify that user
-      const targetUser = allUsers.find(u => u.id === userId);
-      if (targetUser) notifyProfileUpdated(targetUser);
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateResidencyInfo = (userId, residencyInfo) => {
-    setAllUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, residencyInfo: { ...u.residencyInfo, ...residencyInfo } } : u
-    ));
-    
-    // Update current user if it's the logged-in user
-    if (user && user.id === userId) {
-      const updatedUser = { ...user, residencyInfo: { ...user.residencyInfo, ...residencyInfo } };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const logout = async () => {
+    try {
+      await auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
-  const updateGuardInfo = (userId, guardInfo) => {
-    setAllUsers(prev => {
-      const updated = prev.map(u =>
-        u.id === userId ? { ...u, ...guardInfo } : u
-      );
-      sessionStorage.setItem('allUsers', JSON.stringify(updated));
-      return updated;
-    });
-    if (user && user.id === userId) {
-      const updatedUser = { ...user, ...guardInfo };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      if (user.role !== 'admin') requestProfileUpdate(updatedUser);
-    } else if (user && user.role === 'admin') {
-      const targetUser = allUsers.find(u => u.id === userId);
-      if (targetUser) notifyProfileUpdated(targetUser);
-    }
-  };
-
-  const submitResidencyRequest = (request) => {
-    const newRequest = {
-      ...request,
-      id: Date.now().toString(),
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-    setResidencyRequests(prev => [...prev, newRequest]);
-    
-    // Add notification for admin when new request is submitted
-    addNotification({
-      userId: '1', // Admin ID
-      type: 'residency_request',
-      title: 'New Residency Request',
-      message: `${request.residentName || 'A resident'} submitted a ${request.type.replace('_', ' ')} request for apartment ${request.apartment}`,
-      data: { requestId: newRequest.id }
-    });
-  };
-
-  const updateResidencyRequest = (requestId, updates) => {
-    setResidencyRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, ...updates } : req
-    ));
-    
-    // Add notification for resident when request is updated
-    const request = residencyRequests.find(req => req.id === requestId);
-    if (request && updates.status) {
-      addNotification({
-        userId: request.residentId,
-        type: 'request_update',
-        title: `Request ${updates.status === 'approved' ? 'Approved' : updates.status === 'rejected' ? 'Rejected' : 'Updated'}`,
-        message: `Your ${request.type.replace('_', ' ')} request has been ${updates.status}. ${updates.adminNotes ? `Notes: ${updates.adminNotes}` : ''}`,
-        data: { requestId }
+  const registerEstate = async (estateData) => {
+    try {
+      if (!user) throw new Error('User must be logged in');
+      
+      const estate = await db.createEstate({
+        ...estateData,
+        developer_id: user.id
       });
+      
+      return estate;
+    } catch (error) {
+      console.error('Error registering estate:', error);
+      throw error;
     }
+  };
+
+  const createEstateAdmin = async (adminData) => {
+    try {
+      // First create auth user
+      const { user: authUser } = await auth.signUp(
+        adminData.email, 
+        adminData.password,
+        { name: adminData.name, role: 'admin' }
+      );
+
+      // Then create admin profile
+      const admin = await db.createEstateAdmin({
+        ...adminData,
+        user_id: authUser.id
+      });
+
+      return admin;
+    } catch (error) {
+      console.error('Error creating estate admin:', error);
+      throw error;
+    }
+  };
+
+  const createGuard = async (guardData) => {
+    try {
+      // First create auth user
+      const { user: authUser } = await auth.signUp(
+        guardData.email,
+        guardData.password,
+        { name: guardData.name, role: 'guard' }
+      );
+
+      // Then create guard profile
+      const guard = await db.createGuard({
+        ...guardData,
+        user_id: authUser.id,
+        estate_id: currentEstate?.id
+      });
+
+      return guard;
+    } catch (error) {
+      console.error('Error creating guard:', error);
+      throw error;
+    }
+  };
+
+  const createResident = async (residentData) => {
+    try {
+      // First create auth user
+      const { user: authUser } = await auth.signUp(
+        residentData.email,
+        residentData.password,
+        { name: residentData.name, role: 'resident' }
+      );
+
+      // Then create resident profile
+      const resident = await db.createResident({
+        ...residentData,
+        user_id: authUser.id,
+        estate_id: currentEstate?.id
+      });
+
+      return resident;
+    } catch (error) {
+      console.error('Error creating resident:', error);
+      throw error;
+    }
+  };
+
+  const inviteVisitor = async (inviteData) => {
+    try {
+      if (userProfile?.role !== 'resident') {
+        throw new Error('Only residents can invite visitors');
+      }
+
+      const invite = await db.createVisitorInvite({
+        ...inviteData,
+        estate_id: currentEstate?.id,
+        resident_id: userProfile.id,
+        status: 'approved' // Auto-approve for now
+      });
+
+      return invite;
+    } catch (error) {
+      console.error('Error creating visitor invite:', error);
+      throw error;
+    }
+  };
+
+  const verifyVisitorOTP = async (otpCode) => {
+    try {
+      const invite = await db.verifyOTP(otpCode);
+      
+      if (invite) {
+        // Create visitor log entry
+        await db.createVisitorLog({
+          estate_id: currentEstate?.id,
+          invite_id: invite.id,
+          guard_id: userProfile?.id,
+          visitor_name: invite.visitor_name,
+          visitor_phone: invite.visitor_phone,
+          verification_method: 'otp',
+          status: 'entered'
+        });
+
+        // Update invite status to used
+        await supabase
+          .from('visitor_invites')
+          .update({ status: 'used' })
+          .eq('id', invite.id);
+      }
+
+      return invite;
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      throw error;
+    }
+  };
+
+  const value = {
+    user,
+    userProfile,
+    currentEstate,
+    isLoading,
+    login,
+    logout,
+    registerEstate,
+    createEstateAdmin,
+    createGuard,
+    createResident,
+    inviteVisitor,
+    verifyVisitorOTP,
+    // Database access
+    db,
+    // Utility functions
+    getUserRole: () => userProfile?.role || 'user',
+    isAdmin: () => userProfile?.role === 'admin',
+    isGuard: () => userProfile?.role === 'guard',
+    isResident: () => userProfile?.role === 'resident',
+    isDeveloper: () => userProfile?.role === 'developer'
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isLoading,
-      allUsers,
-      residencyRequests,
-      notifications,
-      updatePersonalInfo,
-      updateResidencyInfo,
-      updateGuardInfo,
-      submitResidencyRequest,
-      updateResidencyRequest,
-      addNotification,
-      markNotificationAsRead,
-      markAllNotificationsAsRead,
-      getUserNotifications,
-      requestProfileUpdate,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

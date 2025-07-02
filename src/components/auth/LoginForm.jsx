@@ -21,12 +21,6 @@ export const LoginForm = ({ onBackToLanding }) => {
     }
   };
 
-  const demoCredentials = [
-    { role: 'Admin', email: 'admin@example.com', password: 'admin123', color: 'from-red-500 to-red-600', icon: ShieldCheckIcon },
-    { role: 'Guard', email: 'guard001@example.com', password: 'guard123', color: 'from-blue-500 to-blue-600', icon: ShieldCheckIcon },
-    { role: 'Resident', email: 'resident001@example.com', password: 'resident123', color: 'from-green-500 to-green-600', icon: UserIcon }
-  ];
-
   const fillCredentials = (email, password) => {
     setEmail(email);
     setPassword(password);
@@ -138,34 +132,40 @@ export const LoginForm = ({ onBackToLanding }) => {
                 <div className="w-full border-t border-white/20"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-slate-900 text-gray-400 font-medium">Demo Accounts</span>
+                <span className="px-4 bg-slate-900 text-gray-400 font-medium">Quick Login</span>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {demoCredentials.map((cred, index) => {
-                const IconComponent = cred.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => fillCredentials(cred.email, cred.password)}
-                    className="w-full p-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 group backdrop-blur-sm"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 bg-gradient-to-r ${cred.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg`}>
-                        <IconComponent className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-semibold text-white">{cred.role}</div>
-                        <div className="text-sm text-gray-400 font-mono">{cred.email}</div>
-                      </div>
-                      <div className="text-xs text-gray-400 font-mono bg-white/10 px-2 py-1 rounded-lg backdrop-blur-sm">
-                        {cred.password}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="text-center">
+              <p className="text-gray-400 text-sm mb-4">
+                Use these credentials to test different user roles:
+              </p>
+              <div className="space-y-2 text-xs">
+                <button
+                  onClick={() => fillCredentials('developer@example.com', 'dev123')}
+                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                >
+                  <span className="text-red-400 font-semibold">Developer:</span> developer@example.com / dev123
+                </button>
+                <button
+                  onClick={() => fillCredentials('admin@example.com', 'admin123')}
+                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                >
+                  <span className="text-blue-400 font-semibold">Admin:</span> admin@example.com / admin123
+                </button>
+                <button
+                  onClick={() => fillCredentials('guard@example.com', 'guard123')}
+                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                >
+                  <span className="text-green-400 font-semibold">Guard:</span> guard@example.com / guard123
+                </button>
+                <button
+                  onClick={() => fillCredentials('resident@example.com', 'resident123')}
+                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                >
+                  <span className="text-purple-400 font-semibold">Resident:</span> resident@example.com / resident123
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
