@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Button } from '../../ui/button';
+import { Modal } from '../../ui/modal';
 import { Badge } from '../../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { EyeIcon, XCircleIcon, SearchIcon, FilterIcon, CalendarIcon } from 'lucide-react';
@@ -11,6 +12,8 @@ export const MyInvitesView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [selectedInvite, setSelectedInvite] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const handleCancelInvite = (id) => {
     setInvites(invites.map(invite => 
@@ -18,10 +21,14 @@ export const MyInvitesView = () => {
     ));
   };
 
+  const handleViewInvite = (invite) => {
+    setSelectedInvite(invite);
+    setIsViewModalOpen(true);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'expired': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -41,7 +48,7 @@ export const MyInvitesView = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const statusOptions = ['pending', 'approved', 'expired'];
+  const statusOptions = ['approved', 'expired'];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -52,50 +59,6 @@ export const MyInvitesView = () => {
         <div className="text-xs sm:text-sm text-neutral-600 bg-neutral-100 px-3 py-2 rounded-xl">
           Total Invites: {invites.length}
         </div>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="metric-card">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-green-600 mb-1">
-                {invites.filter(i => i.status === 'approved').length}
-              </div>
-              <div className="text-xs sm:text-sm text-neutral-600 font-medium">Approved</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="metric-card">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-yellow-600 mb-1">
-                {invites.filter(i => i.status === 'pending').length}
-              </div>
-              <div className="text-xs sm:text-sm text-neutral-600 font-medium">Pending</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="metric-card">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-red-600 mb-1">
-                {invites.filter(i => i.status === 'expired').length}
-              </div>
-              <div className="text-xs sm:text-sm text-neutral-600 font-medium">Expired</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="metric-card">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">
-                {invites.filter(i => new Date(i.visitDate) >= new Date()).length}
-              </div>
-              <div className="text-xs sm:text-sm text-neutral-600 font-medium">Upcoming</div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filter Section */}
@@ -220,13 +183,16 @@ export const MyInvitesView = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="button-group-table">
-                        <Button size="sm" variant="outline" className="button-table-action bg-blue-500 hover:bg-blue-600 text-white border-none">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleViewInvite(invite)}
+                          className="button-table-action bg-blue-500 hover:bg-blue-600 text-white border-none"
+                        >
                           <EyeIcon className="w-3 h-3" />
                         </Button>
                         {invite.status !== 'expired' && (
                           <Button
                             size="sm"
-                            variant="outline"
                             onClick={() => handleCancelInvite(invite.id)}
                             className="button-table-action bg-red-500 hover:bg-red-600 text-white border-none"
                           >
@@ -249,6 +215,88 @@ export const MyInvitesView = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Modal */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Invitation Details"
+        size="lg"
+      >
+        {selectedInvite && (
+          <div className="space-y-6">
+            {/* Header Info */}
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center">
+                <EyeIcon className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h4 className="text-xl font-bold text-neutral-800">{selectedInvite.visitorName}</h4>
+                <p className="text-neutral-600">{selectedInvite.purpose}</p>
+              </div>
+              <Badge className={`ml-auto ${getStatusColor(selectedInvite.status)}`}>
+                {selectedInvite.status.toUpperCase()}
+              </Badge>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h5 className="font-semibold text-neutral-800 border-b pb-2">Visitor Information</h5>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-neutral-600">Visitor Name</p>
+                    <p className="font-medium text-neutral-800">{selectedInvite.visitorName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Phone Number</p>
+                    <p className="font-medium text-neutral-800">{selectedInvite.visitorPhone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Purpose of Visit</p>
+                    <p className="font-medium text-neutral-800">{selectedInvite.purpose}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h5 className="font-semibold text-neutral-800 border-b pb-2">Visit Details</h5>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-neutral-600">Visit Date</p>
+                    <p className="font-medium text-neutral-800">{selectedInvite.visitDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Visit Time</p>
+                    <p className="font-medium text-neutral-800">{selectedInvite.visitTime}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Visitor Code</p>
+                    <p className="font-medium text-neutral-800 font-mono">{selectedInvite.code}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="space-y-4">
+              <h5 className="font-semibold text-neutral-800 border-b pb-2">Additional Information</h5>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-neutral-600">Status</p>
+                  <Badge className={getStatusColor(selectedInvite.status)}>
+                    {selectedInvite.status.toUpperCase()}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600">Invitation ID</p>
+                  <p className="font-medium text-neutral-800 font-mono">{selectedInvite.id}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

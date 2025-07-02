@@ -6,7 +6,7 @@ import { LandingPage } from './components/landing/LandingPage';
 
 const AppContent = () => {
   const { user, isLoading } = useAuth();
-  const [showPortal, setShowPortal] = useState(false);
+  const [currentView, setCurrentView] = useState('landing'); // 'landing', 'login', 'portal'
 
   if (isLoading) {
     return (
@@ -21,18 +21,35 @@ const AppContent = () => {
     );
   }
 
-  // Show landing page if portal hasn't been accessed yet
-  if (!showPortal) {
-    return <LandingPage onEnterPortal={() => setShowPortal(true)} />;
+  // Show main application if user is authenticated
+  if (user) {
+    return <HistoryFrame />;
   }
 
-  // Show login form if user is not authenticated
-  if (!user) {
-    return <LoginForm />;
+  // Handle view routing
+  if (currentView === 'landing') {
+    return (
+      <LandingPage 
+        onEnterPortal={() => setCurrentView('login')}
+        onGoToLogin={() => setCurrentView('login')}
+      />
+    );
   }
 
-  // Show main application
-  return <HistoryFrame />;
+  if (currentView === 'login') {
+    return (
+      <LoginForm 
+        onBackToLanding={() => setCurrentView('landing')}
+      />
+    );
+  }
+
+  // Default fallback to login
+  return (
+    <LoginForm 
+      onBackToLanding={() => setCurrentView('landing')}
+    />
+  );
 };
 
 export const App = () => {

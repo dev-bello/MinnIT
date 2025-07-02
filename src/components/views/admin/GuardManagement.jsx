@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Button } from '../../ui/button';
+import { Modal } from '../../ui/modal';
+import { Badge } from '../../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { PlusIcon, EditIcon, TrashIcon, SearchIcon, FilterIcon, ShieldIcon, UserIcon, ClockIcon } from 'lucide-react';
+import { PlusIcon, EditIcon, TrashIcon, SearchIcon, FilterIcon, ShieldIcon, UserIcon, ClockIcon, EyeIcon } from 'lucide-react';
 import { mockGuards } from '../../../contexts/AuthContext';
 
 export const GuardManagement = () => {
@@ -15,6 +17,9 @@ export const GuardManagement = () => {
     email: '',
     shiftSchedule: '',
   });
+  const [selectedGuard, setSelectedGuard] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const generateUniqueId = () => {
     const lastId = guards.length > 0 ? 
@@ -40,6 +45,24 @@ export const GuardManagement = () => {
 
   const handleDeleteGuard = (id) => {
     setGuards(guards.filter(guard => guard.id !== id));
+  };
+
+  const handleViewGuard = (guard) => {
+    setSelectedGuard(guard);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditGuard = (guard) => {
+    setSelectedGuard(guard);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveGuard = (updatedGuard) => {
+    setGuards(guards.map(guard => 
+      guard.id === updatedGuard.id ? updatedGuard : guard
+    ));
+    setIsEditModalOpen(false);
+    setSelectedGuard(null);
   };
 
   // Filter guards based on search term and shift filter
@@ -265,16 +288,27 @@ export const GuardManagement = () => {
                       {guard.email}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="status-badge bg-blue-100 text-blue-800 border-blue-200 text-xs">
-                        {guard.shiftSchedule}
-                      </span>
+                                              <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                          {guard.shiftSchedule}
+                        </Badge>
                     </TableCell>
                     <TableCell className="text-center text-xs text-neutral-500 hidden md:table-cell">
                       {new Date(guard.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="button-group-table">
-                        <Button size="sm" className="button-table-action bg-blue-500 hover:bg-blue-600">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleViewGuard(guard)}
+                          className="button-table-action bg-blue-500 hover:bg-blue-600"
+                        >
+                          <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleEditGuard(guard)}
+                          className="button-table-action bg-green-500 hover:bg-green-600"
+                        >
                           <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         <Button
@@ -300,6 +334,153 @@ export const GuardManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Modal */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Guard Details"
+        size="lg"
+      >
+        {selectedGuard && (
+          <div className="space-y-6">
+            {/* Header Info */}
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                <ShieldIcon className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h4 className="text-xl font-bold text-neutral-800">{selectedGuard.name}</h4>
+                <p className="text-neutral-600">{selectedGuard.email}</p>
+              </div>
+              <Badge className="ml-auto bg-blue-100 text-blue-800 border-blue-200">
+                {selectedGuard.shiftSchedule}
+              </Badge>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h5 className="font-semibold text-neutral-800 border-b pb-2">Personal Information</h5>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-neutral-600">Full Name</p>
+                    <p className="font-medium text-neutral-800">{selectedGuard.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Email Address</p>
+                    <p className="font-medium text-neutral-800">{selectedGuard.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Guard ID</p>
+                    <p className="font-medium text-neutral-800 font-mono">{selectedGuard.uniqueId}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h5 className="font-semibold text-neutral-800 border-b pb-2">Work Information</h5>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-neutral-600">Shift Schedule</p>
+                    <p className="font-medium text-neutral-800">{selectedGuard.shiftSchedule}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Registration Date</p>
+                    <p className="font-medium text-neutral-800">
+                      {new Date(selectedGuard.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-600">Status</p>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      ACTIVE
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Guard Information"
+        size="lg"
+      >
+        {selectedGuard && (
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const updatedGuard = {
+              ...selectedGuard,
+              name: formData.get('name'),
+              email: formData.get('email'),
+              shiftSchedule: formData.get('shiftSchedule')
+            };
+            handleSaveGuard(updatedGuard);
+          }} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={selectedGuard.name}
+                  className="input-modern w-full"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  defaultValue={selectedGuard.email}
+                  className="input-modern w-full"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Shift Schedule
+              </label>
+              <select
+                name="shiftSchedule"
+                defaultValue={selectedGuard.shiftSchedule}
+                className="input-modern w-full"
+                required
+              >
+                <option value="">Select Shift</option>
+                {shiftOptions.map(shift => (
+                  <option key={shift} value={shift}>{shift}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-4">
+              <Button type="submit" className="button-primary">
+                Save Changes
+              </Button>
+              <Button 
+                type="button" 
+                onClick={() => setIsEditModalOpen(false)} 
+                variant="outline" 
+                className="button-secondary"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };

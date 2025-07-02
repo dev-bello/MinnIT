@@ -2,8 +2,9 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogOutIcon, UserIcon, BellIcon, SettingsIcon } from 'lucide-react';
+import { NotificationDropdown } from '../ui/notification';
 
-export const Header = () => {
+export const Header = ({ onProfileClick }) => {
   const { user, logout } = useAuth();
 
   const getRoleColor = (role) => {
@@ -25,11 +26,11 @@ export const Header = () => {
   };
 
   return (
-    <header className="glass-effect rounded-2xl p-4 sm:p-6 mb-6 shadow-soft border-0">
+    <header className="glass-effect rounded-2xl p-4 sm:p-6 mb-6 shadow-soft border-0 z-40 relative">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="flex-1">
           <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold font-display bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            MinnIT Portal
+            MinnIT NG
           </h1>
           <p className="text-sm sm:text-base text-neutral-600 font-medium">
             {new Date().toLocaleDateString('en-US', { 
@@ -44,9 +45,12 @@ export const Header = () => {
         {user && (
           <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 lg:flex-none">
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getRoleColor(user.role)} rounded-2xl flex items-center justify-center shadow-soft`}>
+              <button
+                onClick={onProfileClick}
+                className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getRoleColor(user.role)} rounded-2xl flex items-center justify-center shadow-soft hover:shadow-md transition-shadow cursor-pointer`}
+              >
                 <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
+              </button>
               <div className="flex-1 lg:flex-none min-w-0">
                 <div className="font-semibold text-neutral-800 text-sm sm:text-lg truncate">{user.name}</div>
                 <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getRoleBadgeColor(user.role)}`}>
@@ -56,13 +60,7 @@ export const Header = () => {
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="button-icon"
-              >
-                <BellIcon className="w-4 h-4" />
-              </Button>
+              <NotificationDropdown />
               
               <Button
                 onClick={logout}

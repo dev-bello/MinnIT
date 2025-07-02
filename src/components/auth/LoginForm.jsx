@@ -46,7 +46,7 @@ export const LoginForm = ({ onBackToLanding }) => {
           <Button
             onClick={onBackToLanding}
             variant="outline"
-            className="mb-6 border-white/20 text-white hover:bg-white/10 backdrop-blur-sm"
+            className="mb-6 border-white/20 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Home
