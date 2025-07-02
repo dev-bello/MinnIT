@@ -15,15 +15,23 @@ export const LoginForm = ({ onBackToLanding }) => {
     e.preventDefault();
     setError('');
     
-    const success = await login(email, password);
-    if (!success) {
-      setError('Invalid email or password');
+    const result = await login(email, password);
+    if (!result.success) {
+      // Show specific error message from Supabase
+      if (result.error.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (result.error.includes('Email not confirmed')) {
+        setError('Please check your email and confirm your account before signing in.');
+      } else {
+        setError(result.error);
+      }
     }
   };
 
   const fillCredentials = (email, password) => {
     setEmail(email);
     setPassword(password);
+    setError(''); // Clear any existing errors
   };
 
   return (
@@ -140,6 +148,9 @@ export const LoginForm = ({ onBackToLanding }) => {
               <p className="text-gray-400 text-sm mb-4">
                 Use these credentials to test different user roles:
               </p>
+              <div className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-3 py-2 rounded-lg text-xs mb-4 backdrop-blur-sm">
+                <strong>Note:</strong> These are demo accounts. You'll need to create them in your Supabase Auth panel first.
+              </div>
               <div className="space-y-2 text-xs">
                 <button
                   onClick={() => fillCredentials('developer@example.com', 'dev123')}
