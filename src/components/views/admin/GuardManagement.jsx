@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Modal } from '../../ui/modal';
 import { Badge } from '../../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { PlusIcon, EditIcon, TrashIcon, SearchIcon, FilterIcon, ShieldIcon, UserIcon, ClockIcon, EyeIcon } from 'lucide-react';
-import { mockGuards } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const GuardManagement = () => {
-  const [guards, setGuards] = useState(mockGuards);
+  const { db, currentEstate } = useAuth();
+  const [guards, setGuards] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [shiftFilter, setShiftFilter] = useState('');
@@ -21,30 +23,86 @@ export const GuardManagement = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Fetch guards from database
+  useEffect(() => {
+    const fetchGuards = async () => {
+      if (!db || !currentEstate?.id) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await db
+          .from('guards')
+          .select('*')
+          .eq('estate_id', currentEstate.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching guards:', error);
+        } else {
+          setGuards(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching guards:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGuards();
+  }, [db, currentEstate]);
+
   const generateUniqueId = () => {
     const lastId = guards.length > 0 ? 
-      Math.max(...guards.map(g => parseInt(g.uniqueId.replace('GRD', '')))) : 0;
+      Math.max(...guards.map(g => parseInt(g.unique_id.replace('GRD', '')))) : 0;
     return `GRD${String(lastId + 1).padStart(3, '0')}`;
   };
 
-  const handleAddGuard = (e) => {
+  const handleAddGuard = async (e) => {
     e.preventDefault();
-    const newGuard = {
-      id: Date.now().toString(),
-      uniqueId: generateUniqueId(),
-      name: formData.name,
-      email: formData.email,
-      shiftSchedule: formData.shiftSchedule,
-      createdAt: new Date().toISOString(),
-    };
-    
-    setGuards([...guards, newGuard]);
-    setFormData({ name: '', email: '', shiftSchedule: '' });
-    setShowAddForm(false);
+    if (!db || !currentEstate?.id) return;
+
+    try {
+      const { data, error } = await db
+        .from('guards')
+        .insert([{
+          estate_id: currentEstate.id,
+          name: formData.name,
+          email: formData.email,
+          shift_schedule: formData.shiftSchedule,
+          status: 'active'
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding guard:', error);
+      } else {
+        setGuards([data, ...guards]);
+        setFormData({ name: '', email: '', shiftSchedule: '' });
+        setShowAddForm(false);
+      }
+    } catch (error) {
+      console.error('Error adding guard:', error);
+    }
   };
 
-  const handleDeleteGuard = (id) => {
-    setGuards(guards.filter(guard => guard.id !== id));
+  const handleDeleteGuard = async (id) => {
+    if (!db) return;
+
+    try {
+      const { error } = await db
+        .from('guards')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting guard:', error);
+      } else {
+        setGuards(guards.filter(guard => guard.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting guard:', error);
+    }
   };
 
   const handleViewGuard = (guard) => {
@@ -57,21 +115,40 @@ export const GuardManagement = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveGuard = (updatedGuard) => {
-    setGuards(guards.map(guard => 
-      guard.id === updatedGuard.id ? updatedGuard : guard
-    ));
-    setIsEditModalOpen(false);
-    setSelectedGuard(null);
+  const handleSaveGuard = async (updatedGuard) => {
+    if (!db) return;
+
+    try {
+      const { error } = await db
+        .from('guards')
+        .update({
+          name: updatedGuard.name,
+          email: updatedGuard.email,
+          shift_schedule: updatedGuard.shiftSchedule
+        })
+        .eq('id', updatedGuard.id);
+
+      if (error) {
+        console.error('Error updating guard:', error);
+      } else {
+        setGuards(guards.map(guard => 
+          guard.id === updatedGuard.id ? { ...guard, ...updatedGuard } : guard
+        ));
+        setIsEditModalOpen(false);
+        setSelectedGuard(null);
+      }
+    } catch (error) {
+      console.error('Error updating guard:', error);
+    }
   };
 
   // Filter guards based on search term and shift filter
   const filteredGuards = guards.filter(guard => {
     const matchesSearch = guard.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          guard.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guard.uniqueId.toLowerCase().includes(searchTerm.toLowerCase());
+                         guard.unique_id.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesShift = !shiftFilter || guard.shiftSchedule === shiftFilter;
+    const matchesShift = !shiftFilter || guard.shift_schedule === shiftFilter;
     
     return matchesSearch && matchesShift;
   });
@@ -81,6 +158,21 @@ export const GuardManagement = () => {
     'Evening (2PM - 10PM)',
     'Night (10PM - 6AM)'
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-effect rounded-2xl p-6 shadow-soft border-0">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-neutral-600">Loading guards...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -129,7 +221,9 @@ export const GuardManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-neutral-600">On Duty</p>
-                <p className="text-xl sm:text-2xl font-bold text-neutral-800">5</p>
+                <p className="text-xl sm:text-2xl font-bold text-neutral-800">
+                  {guards.filter(g => g.status === 'active').length}
+                </p>
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center">
                 <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -276,7 +370,7 @@ export const GuardManagement = () => {
                 {filteredGuards.map((guard, index) => (
                   <TableRow key={guard.id} className="table-row">
                     <TableCell className="text-center font-mono font-semibold text-primary-600 text-xs sm:text-sm">
-                      {guard.uniqueId}
+                      {guard.unique_id}
                     </TableCell>
                     <TableCell className="text-center font-semibold text-neutral-800 text-xs sm:text-sm">
                       <div className="min-w-0">
@@ -288,12 +382,12 @@ export const GuardManagement = () => {
                       {guard.email}
                     </TableCell>
                     <TableCell className="text-center">
-                                              <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
-                          {guard.shiftSchedule}
-                        </Badge>
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                        {guard.shift_schedule}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center text-xs text-neutral-500 hidden md:table-cell">
-                      {new Date(guard.createdAt).toLocaleDateString()}
+                      {new Date(guard.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="button-group-table">
@@ -354,7 +448,7 @@ export const GuardManagement = () => {
                 <p className="text-neutral-600">{selectedGuard.email}</p>
               </div>
               <Badge className="ml-auto bg-blue-100 text-blue-800 border-blue-200">
-                {selectedGuard.shiftSchedule}
+                {selectedGuard.shift_schedule}
               </Badge>
             </div>
 
@@ -373,7 +467,7 @@ export const GuardManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Guard ID</p>
-                    <p className="font-medium text-neutral-800 font-mono">{selectedGuard.uniqueId}</p>
+                    <p className="font-medium text-neutral-800 font-mono">{selectedGuard.unique_id}</p>
                   </div>
                 </div>
               </div>
@@ -383,18 +477,18 @@ export const GuardManagement = () => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-neutral-600">Shift Schedule</p>
-                    <p className="font-medium text-neutral-800">{selectedGuard.shiftSchedule}</p>
+                    <p className="font-medium text-neutral-800">{selectedGuard.shift_schedule}</p>
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Registration Date</p>
                     <p className="font-medium text-neutral-800">
-                      {new Date(selectedGuard.createdAt).toLocaleDateString()}
+                      {new Date(selectedGuard.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Status</p>
                     <Badge className="bg-green-100 text-green-800 border-green-200">
-                      ACTIVE
+                      {selectedGuard.status?.toUpperCase() || 'ACTIVE'}
                     </Badge>
                   </div>
                 </div>
@@ -455,7 +549,7 @@ export const GuardManagement = () => {
               </label>
               <select
                 name="shiftSchedule"
-                defaultValue={selectedGuard.shiftSchedule}
+                defaultValue={selectedGuard.shift_schedule}
                 className="input-modern w-full"
                 required
               >

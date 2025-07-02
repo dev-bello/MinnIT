@@ -1,40 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Modal } from '../../ui/modal';
 import { Badge } from '../../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { PlusIcon, EditIcon, TrashIcon, SearchIcon, FilterIcon, HomeIcon, UserIcon, BuildingIcon, CheckCircleIcon, ClockIcon, XCircleIcon, EyeIcon, LockIcon } from 'lucide-react';
-import { mockResidents } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const ResidentManagement = () => {
-  const [residents, setResidents] = useState([
-    ...mockResidents,
-    // Add some additional residents for demonstration
-    {
-      id: '6',
-      uniqueId: 'RES003',
-      name: 'Michael Brown',
-      email: 'michael@example.com',
-      apartmentNumber: 'C-301',
-      status: 'active',
-      registrationDate: '2024-01-10T00:00:00Z',
-      createdAt: '2024-01-10T00:00:00Z',
-      canEdit: false // Permission flag
-    },
-    {
-      id: '7',
-      uniqueId: 'RES004',
-      name: 'Sarah Davis',
-      email: 'sarah@example.com',
-      apartmentNumber: 'A-205',
-      status: 'active',
-      registrationDate: '2024-01-12T00:00:00Z',
-      createdAt: '2024-01-12T00:00:00Z',
-      canEdit: true // Permission flag
-    }
-  ]);
-  
+  const { db, currentEstate } = useAuth();
+  const [residents, setResidents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -49,35 +25,87 @@ export const ResidentManagement = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
 
+  // Fetch residents from database
+  useEffect(() => {
+    const fetchResidents = async () => {
+      if (!db || !currentEstate?.id) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await db
+          .from('residents')
+          .select('*')
+          .eq('estate_id', currentEstate.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching residents:', error);
+        } else {
+          setResidents(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching residents:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResidents();
+  }, [db, currentEstate]);
+
   const generateUniqueId = () => {
     const lastId = residents.length > 0 ? 
-      Math.max(...residents.map(r => parseInt(r.uniqueId.replace('RES', '')))) : 0;
+      Math.max(...residents.map(r => parseInt(r.unique_id.replace('RES', '')))) : 0;
     return `RES${String(lastId + 1).padStart(3, '0')}`;
   };
 
-  const handleAddResident = (e) => {
+  const handleAddResident = async (e) => {
     e.preventDefault();
-    const newResident = {
-      id: Date.now().toString(),
-      uniqueId: generateUniqueId(),
-      name: formData.name,
-      email: formData.email,
-      apartmentNumber: formData.apartmentNumber,
-      status: 'active',
-      registrationDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      canEdit: false // New residents start without edit permission
-    };
-    
-    setResidents([...residents, newResident]);
-    setFormData({ name: '', email: '', apartmentNumber: '' });
-    setShowAddForm(false);
+    if (!db || !currentEstate?.id) return;
+
+    try {
+      const { data, error } = await db
+        .from('residents')
+        .insert([{
+          estate_id: currentEstate.id,
+          name: formData.name,
+          email: formData.email,
+          apartment_number: formData.apartmentNumber,
+          status: 'active',
+          can_edit: false
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding resident:', error);
+      } else {
+        setResidents([data, ...residents]);
+        setFormData({ name: '', email: '', apartmentNumber: '' });
+        setShowAddForm(false);
+      }
+    } catch (error) {
+      console.error('Error adding resident:', error);
+    }
   };
 
+  const handleDeleteResident = async (id) => {
+    if (!db) return;
 
+    try {
+      const { error } = await db
+        .from('residents')
+        .delete()
+        .eq('id', id);
 
-  const handleDeleteResident = (id) => {
-    setResidents(residents.filter(resident => resident.id !== id));
+      if (error) {
+        console.error('Error deleting resident:', error);
+      } else {
+        setResidents(residents.filter(resident => resident.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting resident:', error);
+    }
   };
 
   const handleViewResident = (resident) => {
@@ -86,7 +114,7 @@ export const ResidentManagement = () => {
   };
 
   const handleEditResident = (resident) => {
-    if (!resident.canEdit) {
+    if (!resident.can_edit) {
       setSelectedResident(resident);
       setShowPermissionModal(true);
       return;
@@ -95,18 +123,38 @@ export const ResidentManagement = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveResident = (updatedResident) => {
-    setResidents(residents.map(resident => 
-      resident.id === updatedResident.id ? updatedResident : resident
-    ));
-    setIsEditModalOpen(false);
-    setSelectedResident(null);
+  const handleSaveResident = async (updatedResident) => {
+    if (!db) return;
+
+    try {
+      const { error } = await db
+        .from('residents')
+        .update({
+          name: updatedResident.name,
+          email: updatedResident.email,
+          apartment_number: updatedResident.apartmentNumber
+        })
+        .eq('id', updatedResident.id);
+
+      if (error) {
+        console.error('Error updating resident:', error);
+      } else {
+        setResidents(residents.map(resident => 
+          resident.id === updatedResident.id ? { ...resident, ...updatedResident } : resident
+        ));
+        setIsEditModalOpen(false);
+        setSelectedResident(null);
+      }
+    } catch (error) {
+      console.error('Error updating resident:', error);
+    }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
       case 'inactive': return 'bg-red-100 text-red-800 border-red-200';
+      case 'moved_out': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-neutral-100 text-neutral-800 border-neutral-200';
     }
   };
@@ -115,6 +163,7 @@ export const ResidentManagement = () => {
     switch (status) {
       case 'active': return <CheckCircleIcon className="w-4 h-4" />;
       case 'inactive': return <XCircleIcon className="w-4 h-4" />;
+      case 'moved_out': return <ClockIcon className="w-4 h-4" />;
       default: return <ClockIcon className="w-4 h-4" />;
     }
   };
@@ -123,20 +172,35 @@ export const ResidentManagement = () => {
   const filteredResidents = residents.filter(resident => {
     const matchesSearch = resident.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          resident.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resident.uniqueId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resident.apartmentNumber.toLowerCase().includes(searchTerm.toLowerCase());
+                         resident.unique_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resident.apartment_number.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = !statusFilter || resident.status === statusFilter;
     
     const matchesApartment = !apartmentFilter || 
-                            resident.apartmentNumber.toLowerCase().includes(apartmentFilter.toLowerCase());
+                            resident.apartment_number.toLowerCase().includes(apartmentFilter.toLowerCase());
     
     return matchesSearch && matchesStatus && matchesApartment;
   });
 
   // Get unique apartment blocks for filtering
-  const apartmentBlocks = [...new Set(residents.map(r => r.apartmentNumber.charAt(0)))].sort();
-  const statusOptions = ['active', 'inactive'];
+  const apartmentBlocks = [...new Set(residents.map(r => r.apartment_number.charAt(0)))].sort();
+  const statusOptions = ['active', 'inactive', 'moved_out'];
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-effect rounded-2xl p-6 shadow-soft border-0">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-neutral-600">Loading residents...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -195,8 +259,6 @@ export const ResidentManagement = () => {
             </div>
           </CardContent>
         </Card>
-        
-
       </div>
 
       {/* Search and Filter Section */}
@@ -350,7 +412,7 @@ export const ResidentManagement = () => {
                 {filteredResidents.map((resident, index) => (
                   <TableRow key={resident.id} className="table-row">
                     <TableCell className="text-center font-mono font-semibold text-primary-600 whitespace-nowrap">
-                      {resident.uniqueId}
+                      {resident.unique_id}
                     </TableCell>
                     <TableCell className="text-center font-semibold text-neutral-800 whitespace-nowrap">
                       {resident.name}
@@ -360,7 +422,7 @@ export const ResidentManagement = () => {
                     </TableCell>
                     <TableCell className="text-center whitespace-nowrap">
                       <Badge className="bg-green-100 text-green-800 border-green-200">
-                        {resident.apartmentNumber}
+                        {resident.apartment_number}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center whitespace-nowrap">
@@ -372,28 +434,10 @@ export const ResidentManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm text-neutral-500 whitespace-nowrap">
-                      {new Date(resident.registrationDate || resident.createdAt).toLocaleDateString()}
+                      {new Date(resident.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-center whitespace-nowrap">
                       <div className="flex justify-center gap-1 sm:gap-2">
-                        {resident.status === 'pending_approval' && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleApproveResident(resident.id)}
-                              className="bg-green-500 hover:bg-green-600 text-white rounded-lg p-1 sm:px-3 sm:py-2"
-                            >
-                              <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleRejectResident(resident.id)}
-                              className="bg-red-500 hover:bg-red-600 text-white rounded-lg p-1 sm:px-3 sm:py-2"
-                            >
-                              <XCircleIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Button>
-                          </>
-                        )}
                         <Button 
                           size="sm" 
                           onClick={() => handleViewResident(resident)}
@@ -405,13 +449,13 @@ export const ResidentManagement = () => {
                           size="sm" 
                           onClick={() => handleEditResident(resident)}
                           className={`rounded-lg p-1 sm:px-3 sm:py-2 ${
-                            resident.canEdit 
+                            resident.can_edit 
                               ? 'bg-green-500 hover:bg-green-600 text-white' 
                               : 'bg-gray-400 hover:bg-gray-500 text-white'
                           }`}
-                          title={resident.canEdit ? 'Edit Resident' : 'Edit Permission Required'}
+                          title={resident.can_edit ? 'Edit Resident' : 'Edit Permission Required'}
                         >
-                          {resident.canEdit ? <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" /> : <LockIcon className="w-3 h-3 sm:w-4 sm:h-4" />}
+                          {resident.can_edit ? <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" /> : <LockIcon className="w-3 h-3 sm:w-4 sm:h-4" />}
                         </Button>
                         <Button
                           size="sm"
@@ -475,7 +519,7 @@ export const ResidentManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Resident ID</p>
-                    <p className="font-medium text-neutral-800 font-mono">{selectedResident.uniqueId}</p>
+                    <p className="font-medium text-neutral-800 font-mono">{selectedResident.unique_id}</p>
                   </div>
                 </div>
               </div>
@@ -485,12 +529,12 @@ export const ResidentManagement = () => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-neutral-600">Apartment Number</p>
-                    <p className="font-medium text-neutral-800">{selectedResident.apartmentNumber}</p>
+                    <p className="font-medium text-neutral-800">{selectedResident.apartment_number}</p>
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Registration Date</p>
                     <p className="font-medium text-neutral-800">
-                      {new Date(selectedResident.registrationDate || selectedResident.createdAt).toLocaleDateString()}
+                      {new Date(selectedResident.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div>
@@ -504,8 +548,8 @@ export const ResidentManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-600">Edit Permission</p>
-                    <Badge className={selectedResident.canEdit ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}>
-                      {selectedResident.canEdit ? 'ALLOWED' : 'RESTRICTED'}
+                    <Badge className={selectedResident.can_edit ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}>
+                      {selectedResident.can_edit ? 'ALLOWED' : 'RESTRICTED'}
                     </Badge>
                   </div>
                 </div>
@@ -567,7 +611,7 @@ export const ResidentManagement = () => {
               <input
                 type="text"
                 name="apartmentNumber"
-                defaultValue={selectedResident.apartmentNumber}
+                defaultValue={selectedResident.apartment_number}
                 className="input-modern w-full"
                 placeholder="e.g., A-101, B-205"
                 required
