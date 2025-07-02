@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { useAuth } from '../../contexts/AuthContext';
+import { DeveloperDashboard } from './developer/DeveloperDashboard';
+import { AdminDashboard } from './admin/AdminDashboard';
 import { 
   UsersIcon, 
   UserCheckIcon, 
@@ -20,43 +22,39 @@ import {
 } from 'lucide-react';
 
 export const DashboardView = ({ onViewChange }) => {
-  const { user } = useAuth();
+  const { userProfile, getUserRole } = useAuth();
+  const role = getUserRole();
+
+  // Route to specific dashboards based on user role
+  if (role === 'developer') {
+    return <DeveloperDashboard />;
+  }
+
+  if (role === 'admin') {
+    return <AdminDashboard />;
+  }
 
   // Define logs for each user role based on available actions
   let allLogs = [];
-  if (user?.role === 'guard') {
+  if (role === 'guard') {
     allLogs = [
       { time: '10:30 AM', action: 'Visitor verified with OTP', type: 'success', icon: UserCheckIcon },
       { time: '09:45 AM', action: 'OTP verification failed', type: 'warning', icon: UserCheckIcon },
       { time: '08:15 AM', action: 'Shift started', type: 'info', icon: ActivityIcon },
     ];
-  } else if (user?.role === 'admin') {
-    allLogs = [
-      { time: '08:30 AM', action: 'New resident registered', type: 'success', icon: UserPlusIcon },
-      { time: '08:00 AM', action: 'New guard added', type: 'success', icon: ShieldIcon },
-      { time: '07:45 AM', action: 'System accessed', type: 'info', icon: ActivityIcon },
-    ];
-  } else if (user?.role === 'resident') {
+  } else if (role === 'resident') {
     allLogs = [
       { time: '10:30 AM', action: 'Visitor invited', type: 'success', icon: UserPlusIcon },
       { time: '09:45 AM', action: 'Invitation sent', type: 'info', icon: ActivityIcon },
       { time: '09:00 AM', action: 'Portal accessed', type: 'info', icon: ActivityIcon },
     ];
   }
+
   const [showAllLogs, setShowAllLogs] = useState(false);
   const logsToShow = showAllLogs ? allLogs : allLogs.slice(0, 5);
 
   const getDashboardStats = () => {
-    if (user?.role === 'admin') {
-      return [
-        { title: 'Total Visitors Today', value: '24', icon: UsersIcon, color: 'from-blue-500 to-blue-600', change: '+12%', trend: 'up' },
-        { title: 'Active Guards', value: '8', icon: UserCheckIcon, color: 'from-green-500 to-green-600', change: '+2', trend: 'up' },
-        { title: 'Total Guards', value: '15', icon: ShieldIcon, color: 'from-purple-500 to-purple-600', change: '+2 this month', trend: 'up' },
-        { title: 'Total Residents', value: '142', icon: UserPlusIcon, color: 'from-indigo-500 to-indigo-600', change: '+8 this month', trend: 'up' },
-      ];
-    }
-
-    if (user?.role === 'guard') {
+    if (role === 'guard') {
       return [
         { title: 'Visitors Processed', value: '12', icon: UserCheckIcon, color: 'from-green-500 to-green-600', change: '+8', trend: 'up' },
         { title: 'Hours on Duty', value: '6', icon: TrendingUpIcon, color: 'from-blue-500 to-blue-600', change: '75%', trend: 'up' },
@@ -64,41 +62,19 @@ export const DashboardView = ({ onViewChange }) => {
       ];
     }
 
-    if (user?.role === 'resident') {
-      return [];
+    if (role === 'resident') {
+      return [
+        { title: 'Active Invites', value: '3', icon: UserPlusIcon, color: 'from-blue-500 to-blue-600', change: '+2', trend: 'up' },
+        { title: 'This Month', value: '8', icon: CalendarIcon, color: 'from-green-500 to-green-600', change: '+3', trend: 'up' },
+        { title: 'Total Visitors', value: '24', icon: UsersIcon, color: 'from-purple-500 to-purple-600', change: '+12', trend: 'up' },
+      ];
     }
 
     return [];
   };
 
   const getQuickActions = () => {
-    if (user?.role === 'admin') {
-      return [
-        { 
-          title: 'Add New Guard', 
-          description: 'Register a new security guard',
-          icon: ShieldIcon,
-          action: () => onViewChange('guards'),
-          color: 'from-blue-500 to-blue-600'
-        },
-        { 
-          title: 'Add New Resident', 
-          description: 'Register a new resident',
-          icon: UserPlusIcon,
-          action: () => onViewChange('residents'),
-          color: 'from-green-500 to-green-600'
-        },
-        { 
-          title: 'View System Reports', 
-          description: 'Access detailed analytics',
-          icon: FileTextIcon,
-          action: () => onViewChange('history'),
-          color: 'from-purple-500 to-purple-600'
-        }
-      ];
-    }
-
-    if (user?.role === 'guard') {
+    if (role === 'guard') {
       return [
         {
           title: 'Verify OTP',
@@ -117,7 +93,7 @@ export const DashboardView = ({ onViewChange }) => {
       ];
     }
 
-    if (user?.role === 'resident') {
+    if (role === 'resident') {
       return [
         { 
           title: 'Invite Visitor', 
@@ -155,7 +131,7 @@ export const DashboardView = ({ onViewChange }) => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-neutral-800 mb-2">
-              Welcome back, <span className="gradient-text">{user?.name}</span>
+              Welcome back, <span className="gradient-text">{userProfile?.name}</span>
             </h2>
             <p className="text-sm sm:text-base text-neutral-600 font-medium">
               Here's what's happening in your workspace today
@@ -174,7 +150,7 @@ export const DashboardView = ({ onViewChange }) => {
 
       {/* Stats Grid */}
       {stats.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {stats.map((stat, index) => {
             const IconComponent = stat.icon;
             return (

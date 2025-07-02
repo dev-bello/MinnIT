@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { KeyIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const VerifyOTPView = () => {
+  const { verifyVisitorOTP } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [verificationResult, setVerificationResult] = useState(null);
-  const [recentVerifications, setRecentVerifications] = useState([
-    { otp: '123456', name: 'Sarah Wilson', time: '11:15 AM', status: 'success' },
-    { otp: '654321', name: 'Unknown', time: '10:45 AM', status: 'failed' },
-    { otp: '789012', name: 'David Chen', time: '10:20 AM', status: 'success' },
-  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [recentVerifications, setRecentVerifications] = useState([]);
 
   const handleOtpChange = (index, value) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -33,47 +32,53 @@ export const VerifyOTPView = () => {
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const otpString = otp.join('');
     if (otpString.length === 6) {
-      // Simulate OTP verification
-      setTimeout(() => {
-        if (otpString === '123456') {
-          const result = {
+      setIsLoading(true);
+      try {
+        const result = await verifyVisitorOTP(otpString);
+        
+        if (result) {
+          const successResult = {
             success: true,
             message: 'OTP verified successfully!',
             visitorInfo: {
-              name: 'Sarah Wilson',
-              resident: 'John Resident (A-101)',
-              purpose: 'Personal Visit',
-              validUntil: '2024-01-16 14:00'
+              name: result.visitor_name,
+              resident: `${result.residents.name} (${result.residents.apartment_number})`,
+              purpose: result.purpose,
+              validUntil: new Date(result.expires_at).toLocaleString()
             }
           };
-          setVerificationResult(result);
+          setVerificationResult(successResult);
           
           // Add to recent verifications
           setRecentVerifications(prev => [{
             otp: otpString,
-            name: result.visitorInfo.name,
+            name: result.visitor_name,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             status: 'success'
           }, ...prev.slice(0, 4)]);
         } else {
-          const result = {
-            success: false,
-            message: 'Invalid OTP. Please check and try again.'
-          };
-          setVerificationResult(result);
-          
-          // Add to recent verifications
-          setRecentVerifications(prev => [{
-            otp: otpString,
-            name: 'Unknown',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            status: 'failed'
-          }, ...prev.slice(0, 4)]);
+          throw new Error('Invalid OTP');
         }
-      }, 1000);
+      } catch (error) {
+        const failResult = {
+          success: false,
+          message: 'Invalid OTP. Please check and try again.'
+        };
+        setVerificationResult(failResult);
+        
+        // Add to recent verifications
+        setRecentVerifications(prev => [{
+          otp: otpString,
+          name: 'Unknown',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'failed'
+        }, ...prev.slice(0, 4)]);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -119,10 +124,17 @@ export const VerifyOTPView = () => {
 
             <Button
               onClick={handleVerifyOtp}
-              disabled={!isOtpComplete}
+              disabled={!isOtpComplete || isLoading}
               className="button-primary mobile-full disabled:opacity-50"
             >
-              Verify OTP
+              {isLoading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Verifying...</span>
+                </div>
+              ) : (
+                'Verify OTP'
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -136,20 +148,27 @@ export const VerifyOTPView = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recentVerifications.map((verification, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      verification.status === 'success' ? 'bg-green-400' : 'bg-red-400'
-                    }`} />
-                    <div>
-                      <p className="text-neutral-800 font-medium font-mono text-sm">{verification.otp}</p>
-                      <p className="text-neutral-600 text-xs">{verification.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-neutral-600 text-xs sm:text-sm">{verification.time}</div>
+              {recentVerifications.length === 0 ? (
+                <div className="text-center py-8 text-neutral-500">
+                  <KeyIcon className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
+                  <p className="text-sm">No verifications yet</p>
                 </div>
-              ))}
+              ) : (
+                recentVerifications.map((verification, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        verification.status === 'success' ? 'bg-green-400' : 'bg-red-400'
+                      }`} />
+                      <div>
+                        <p className="text-neutral-800 font-medium font-mono text-sm">{verification.otp}</p>
+                        <p className="text-neutral-600 text-xs">{verification.name}</p>
+                      </div>
+                    </div>
+                    <div className="text-neutral-600 text-xs sm:text-sm">{verification.time}</div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -217,7 +236,7 @@ export const VerifyOTPView = () => {
             <li>• Enter each digit in the corresponding box</li>
             <li>• The system will automatically verify the code</li>
             <li>• Valid OTPs will show visitor information and visiting details</li>
-            <li>• For demo purposes, use OTP: <strong className="text-primary-600">123456</strong></li>
+            <li>• Contact the admin if you encounter any issues</li>
           </ul>
         </CardContent>
       </Card>
