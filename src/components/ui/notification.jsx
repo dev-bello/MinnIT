@@ -11,7 +11,9 @@ export const NotificationDropdown = () => {
   const [modalData, setModalData] = useState(null);
   const dropdownRef = useRef(null);
 
-  const notifications = getUserNotifications(user?.id || '');
+  // Ensure notifications is always an array
+  const rawNotifications = getUserNotifications(user?.id || '');
+  const notifications = Array.isArray(rawNotifications) ? rawNotifications : [];
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   useEffect(() => {

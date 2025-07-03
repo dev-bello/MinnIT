@@ -12,27 +12,42 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await loadUserProfile(session.user.id);
+      try {
+        console.log('Fetching initial session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session:', session);
+        if (session?.user) {
+          setUser(session.user);
+          await loadUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        console.log('Setting isLoading to false (initial session)');
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await loadUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setUserProfile(null);
-        setCurrentEstate(null);
+      try {
+        console.log('Auth state changed:', event, session);
+        if (session?.user) {
+          setUser(session.user);
+          await loadUserProfile(session.user.id);
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          setCurrentEstate(null);
+        }
+      } catch (error) {
+        console.error('Error in onAuthStateChange:', error);
+      } finally {
+        console.log('Setting isLoading to false (auth state change)');
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -40,6 +55,7 @@ export const AuthProvider = ({ children }) => {
 
   const loadUserProfile = async (userId) => {
     try {
+      console.log('Loading user profile for:', userId);
       // Check if user is a developer (has estates)
       const { data: estates } = await supabase
         .from('estates')
@@ -52,6 +68,7 @@ export const AuthProvider = ({ children }) => {
           estates: estates,
           name: user?.user_metadata?.name || 'Developer'
         });
+        console.log('User profile loaded:', userProfile);
         return;
       }
 
@@ -72,6 +89,7 @@ export const AuthProvider = ({ children }) => {
           estate: adminProfile.estates
         });
         setCurrentEstate(adminProfile.estates);
+        console.log('User profile loaded:', userProfile);
         return;
       }
 
@@ -92,6 +110,7 @@ export const AuthProvider = ({ children }) => {
           estate: guardProfile.estates
         });
         setCurrentEstate(guardProfile.estates);
+        console.log('User profile loaded:', userProfile);
         return;
       }
 
@@ -112,6 +131,7 @@ export const AuthProvider = ({ children }) => {
           estate: residentProfile.estates
         });
         setCurrentEstate(residentProfile.estates);
+        console.log('User profile loaded:', userProfile);
         return;
       }
 
@@ -120,6 +140,7 @@ export const AuthProvider = ({ children }) => {
         role: 'user',
         name: user?.user_metadata?.name || user?.email || 'User'
       });
+      console.log('User profile loaded:', userProfile);
 
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -150,7 +171,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await auth.signOut();
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -290,6 +311,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Fetch notifications for a user
+  const getUserNotifications = async (userId) => {
+    if (!userId) return [];
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+    return data;
+  };
+
   const value = {
     user,
     userProfile,
@@ -310,7 +346,8 @@ export const AuthProvider = ({ children }) => {
     isAdmin: () => userProfile?.role === 'admin',
     isGuard: () => userProfile?.role === 'guard',
     isResident: () => userProfile?.role === 'resident',
-    isDeveloper: () => userProfile?.role === 'developer'
+    isDeveloper: () => userProfile?.role === 'developer',
+    getUserNotifications
   };
 
   return (

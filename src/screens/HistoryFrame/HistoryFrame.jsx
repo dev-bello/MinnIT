@@ -22,7 +22,7 @@ import { MenuIcon, XIcon, UserIcon, LogOutIcon } from "lucide-react";
 export const HistoryFrame = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, userProfile, logout } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Close sidebar when clicking outside
@@ -109,6 +109,25 @@ export const HistoryFrame = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
       <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6">
+        {/* User Profile Banner */}
+        {userProfile && (
+          <div className="mb-6 p-4 rounded-xl bg-white/80 shadow border border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+            <div>
+              <div className="text-lg font-bold">Welcome, {userProfile.name || 'User'}!</div>
+              <div className="text-sm text-neutral-700">Role: <span className="font-semibold">{userProfile.role}</span></div>
+              {userProfile.email && <div className="text-sm text-neutral-700">Email: <span className="font-mono">{userProfile.email}</span></div>}
+              {userProfile.unique_id && <div className="text-sm text-neutral-700">Unique ID: <span className="font-mono">{userProfile.unique_id}</span></div>}
+              {userProfile.phone && <div className="text-sm text-neutral-700">Phone: <span className="font-mono">{userProfile.phone}</span></div>}
+              {userProfile.permissions && (
+                <div className="text-sm text-neutral-700">Permissions: <span className="font-mono">{JSON.stringify(userProfile.permissions)}</span></div>
+              )}
+              {userProfile.estate && (
+                <div className="text-sm text-neutral-700">Estate: <span className="font-mono">{userProfile.estate?.name || JSON.stringify(userProfile.estate)}</span></div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Mobile Header with Menu Button */}
         <div className="lg:hidden glass-effect rounded-2xl p-4 mb-4 sm:mb-6 shadow-soft border-0">
           <div className="flex items-center justify-between">
