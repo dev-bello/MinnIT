@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '../ui/card';
+import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 import { DeveloperDashboard } from './developer/DeveloperDashboard';
 import { AdminDashboard } from './admin/AdminDashboard';
+import { SuperAdminDashboard } from './superadmin/SuperAdminDashboard';
 import { 
   UsersIcon, 
   UserCheckIcon, 
@@ -18,12 +20,41 @@ import {
   QrCodeIcon,
   ArrowUpIcon,
   ArrowDownIcon,
-  ActivityIcon
+  ActivityIcon,
+  RefreshCwIcon,
+  AlertCircleIcon
 } from 'lucide-react';
 
 export const DashboardView = ({ onViewChange }) => {
   const { userProfile, getUserRole } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showAllLogs, setShowAllLogs] = useState(false);
+  
   const role = getUserRole();
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+        
+        // Simulate loading time for dashboard data
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Add any actual data loading here
+        // For now, just simulate success
+        
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError('Failed to load dashboard data. Please try refreshing the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   // Route to specific dashboards based on user role
   if (role === 'developer') {
@@ -32,6 +63,47 @@ export const DashboardView = ({ onViewChange }) => {
 
   if (role === 'admin') {
     return <AdminDashboard />;
+  }
+
+  if (role === 'super_admin') {
+    return <SuperAdminDashboard />;
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-effect rounded-2xl p-8 shadow-soft border-0">
+          <div className="flex items-center justify-center space-x-4">
+            <RefreshCwIcon className="w-8 h-8 text-primary-600 animate-spin" />
+            <div className="text-neutral-600 font-medium">Loading your dashboard...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-effect rounded-2xl p-8 shadow-soft border-0">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircleIcon className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-800">Dashboard Error</h3>
+            <p className="text-red-700">{error}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="button-primary"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Define logs for each user role based on available actions
@@ -50,7 +122,6 @@ export const DashboardView = ({ onViewChange }) => {
     ];
   }
 
-  const [showAllLogs, setShowAllLogs] = useState(false);
   const logsToShow = showAllLogs ? allLogs : allLogs.slice(0, 5);
 
   const getDashboardStats = () => {
@@ -82,6 +153,13 @@ export const DashboardView = ({ onViewChange }) => {
           icon: UserCheckIcon,
           action: () => onViewChange('verify-otp'),
           color: 'from-green-500 to-green-600'
+        },
+        {
+          title: 'Scan Code',
+          description: 'Scan visitor QR code',
+          icon: QrCodeIcon,
+          action: () => onViewChange('scan-code'),
+          color: 'from-blue-500 to-blue-600'
         },
         {
           title: 'Shift Report',
@@ -194,29 +272,39 @@ export const DashboardView = ({ onViewChange }) => {
             {logsToShow.map((activity, index) => {
               const IconComponent = activity.icon;
               return (
-                <div key={index} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/50 rounded-xl hover:bg-white/80 transition-all duration-200 group">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${
-                    activity.type === 'success' ? 'bg-green-100 text-green-600' :
-                    activity.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'
-                  } group-hover:scale-110 transition-transform duration-200`}>
-                    <IconComponent className="w-4 h-4 sm:w-6 sm:h-6" />
+                <div key={index} className="flex items-center space-x-3 p-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activity.type === 'success' ? 'bg-green-100' :
+                    activity.type === 'warning' ? 'bg-yellow-100' :
+                    'bg-blue-100'
+                  }`}>
+                    <IconComponent className={`w-4 h-4 ${
+                      activity.type === 'success' ? 'text-green-600' :
+                      activity.type === 'warning' ? 'text-yellow-600' :
+                      'text-blue-600'
+                    }`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-neutral-800 truncate">{activity.action}</p>
+                    <p className="text-sm font-medium text-neutral-800 truncate">{activity.action}</p>
                     <p className="text-xs text-neutral-500">{activity.time}</p>
                   </div>
                 </div>
               );
             })}
-            {allLogs.length > 5 && (
-              <div className="flex justify-center mt-2">
-                <button
-                  className="px-3 sm:px-4 py-2 rounded-lg bg-blue-600 text-white text-xs sm:text-sm font-semibold hover:bg-blue-700 transition"
-                  onClick={() => setShowAllLogs(!showAllLogs)}
-                >
-                  {showAllLogs ? 'Show Less' : 'View All'}
-                </button>
+            {allLogs.length === 0 && (
+              <div className="text-center py-8 text-neutral-500">
+                <ActivityIcon className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
+                <p className="text-sm">No recent activity</p>
               </div>
+            )}
+            {allLogs.length > 5 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAllLogs(!showAllLogs)}
+                className="w-full mt-4"
+              >
+                {showAllLogs ? 'Show Less' : 'Show All'}
+              </Button>
             )}
           </CardContent>
         </Card>
@@ -228,23 +316,33 @@ export const DashboardView = ({ onViewChange }) => {
               Quick Actions
             </h3>
           </CardHeader>
-          <CardContent className={`space-y-3 sm:space-y-4${quickActions.length > 4 ? ' max-h-60 sm:max-h-80 overflow-y-auto' : ''}`}>
+          <CardContent className="space-y-3 sm:space-y-4">
             {quickActions.map((action, index) => {
               const IconComponent = action.icon;
               return (
                 <button
                   key={index}
                   onClick={action.action}
-                  className={`w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl font-semibold transition-all duration-200 bg-gradient-to-r ${action.color} text-white hover:scale-105 shadow-lg`}
+                  className="w-full p-4 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-left group"
                 >
-                  <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
-                  <div className="flex-1 text-left">
-                    <div className="text-sm sm:text-base font-bold">{action.title}</div>
-                    <div className="text-xs opacity-80">{action.description}</div>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform duration-200`}>
+                      <IconComponent className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-neutral-800 truncate">{action.title}</h4>
+                      <p className="text-sm text-neutral-600 truncate">{action.description}</p>
+                    </div>
                   </div>
                 </button>
               );
             })}
+            {quickActions.length === 0 && (
+              <div className="text-center py-8 text-neutral-500">
+                <PlusIcon className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
+                <p className="text-sm">No quick actions available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

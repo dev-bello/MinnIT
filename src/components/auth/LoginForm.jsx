@@ -1,37 +1,101 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
+import { Input } from '../ui/input';
 import { useAuth } from '../../contexts/AuthContext';
-import { EyeIcon, EyeOffIcon, ShieldCheckIcon, UserIcon, LockIcon, ArrowLeftIcon } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, ShieldCheckIcon, UserIcon, LockIcon, ArrowLeftIcon, MailIcon, AlertCircleIcon, CheckCircleIcon } from 'lucide-react';
 
 export const LoginForm = ({ onBackToLanding }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, register, resetPassword, isLoading: authLoading } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setIsLoading(true);
     
-    const result = await login(email, password);
-    if (!result.success) {
-      // Show specific error message from Supabase
-      if (result.error.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (result.error.includes('Email not confirmed')) {
-        setError('Please check your email and confirm your account before signing in.');
+    try {
+      if (isResetPassword) {
+        const result = await resetPassword(email);
+        if (result.success) {
+          setSuccess('Password reset email sent! Check your inbox.');
+          setIsResetPassword(false);
+        } else {
+          setError(result.error);
+        }
+      } else if (isLogin) {
+        const result = await login(email, password);
+        if (!result.success) {
+          if (result.error.includes('Invalid login credentials')) {
+            setError('Invalid email or password. Please check your credentials and try again.');
+          } else if (result.error.includes('Email not confirmed')) {
+            setError('Please check your email and confirm your account before signing in.');
+          } else {
+            setError(result.error);
+          }
+        }
       } else {
-        setError(result.error);
+        // Registration
+        if (password !== confirmPassword) {
+          setError('Passwords do not match.');
+          return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long.');
+          return;
+        }
+        
+        const result = await register(email, password, name);
+        if (result.success) {
+          setSuccess('Registration successful! Please check your email to confirm your account.');
+          setIsLogin(true);
+        } else {
+          setError(result.error);
+        }
       }
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const fillCredentials = (email, password) => {
-    setEmail(email);
-    setPassword(password);
-    setError(''); // Clear any existing errors
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setName('');
+    setError('');
+    setSuccess('');
+    setIsLogin(true);
+    setIsResetPassword(false);
+  };
+
+  const toggleMode = () => {
+    resetForm();
+    setIsLogin(!isLogin);
+  };
+
+  const handleResetPassword = () => {
+    resetForm();
+    setIsResetPassword(true);
+  };
+
+  const handleBackToLogin = () => {
+    resetForm();
+    setIsLogin(true);
+    setIsResetPassword(false);
   };
 
   return (
@@ -61,122 +125,190 @@ export const LoginForm = ({ onBackToLanding }) => {
               <ShieldCheckIcon className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-              MinnIT Portal
+              {isResetPassword ? 'Reset Password' : (isLogin ? 'MinnIT Portal' : 'Create Account')}
             </h1>
-            <p className="text-gray-300 font-medium">Welcome back! Please sign in to continue</p>
+            <p className="text-gray-300 font-medium">
+              {isResetPassword 
+                ? 'Enter your email to receive a password reset link'
+                : (isLogin ? 'Welcome back! Please sign in to continue' : 'Join MinnIT for secure visitor management')
+              }
+            </p>
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-sm animate-slide-down backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <AlertCircleIcon className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-500/20 border border-green-500/30 text-green-300 px-4 py-3 rounded-xl text-sm animate-slide-down backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                  <span>{success}</span>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-200 mb-2">
-                    Email Address
+              {/* Name field for registration */}
+              {!isLogin && !isResetPassword && (
+                <div className="space-y-4">
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-200 mb-2">
+                    Full Name
                   </label>
                   <div className="relative">
                     <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter your email"
+                      placeholder="Enter your full name"
                       required
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="password" className="block text-sm font-semibold text-gray-200 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                    >
-                      {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-sm animate-slide-down backdrop-blur-sm">
-                  {error}
                 </div>
               )}
 
+              {/* Email field */}
+              <div className="space-y-4">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-200 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <MailIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password fields */}
+              {!isResetPassword && (
+                <>
+                  <div className="space-y-4">
+                    <label htmlFor="password" className="block text-sm font-semibold text-gray-200 mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="Enter your password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password for registration */}
+                  {!isLogin && (
+                    <div className="space-y-4">
+                      <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-200 mb-2">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Confirm your password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || authLoading}
                 className="w-full py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
-                {isLoading ? (
+                {isLoading || authLoading ? (
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Signing in...</span>
+                    <span>
+                      {isResetPassword ? 'Sending...' : (isLogin ? 'Signing in...' : 'Creating Account...')}
+                    </span>
                   </div>
                 ) : (
-                  'Sign In'
+                  isResetPassword ? 'Send Reset Link' : (isLogin ? 'Sign In' : 'Create Account')
                 )}
               </Button>
             </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/20"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-slate-900 text-gray-400 font-medium">Quick Login</span>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-gray-400 text-sm mb-4">
-                Use these credentials to test different user roles:
-              </p>
-              <div className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-3 py-2 rounded-lg text-xs mb-4 backdrop-blur-sm">
-                <strong>Note:</strong> These are demo accounts. You'll need to create them in your Supabase Auth panel first.
-              </div>
-              <div className="space-y-2 text-xs">
+            {/* Action Links */}
+            <div className="space-y-4 pt-6 border-t border-white/20">
+              {isLogin && !isResetPassword && (
+                <>
+                  <button
+                    onClick={toggleMode}
+                    className="w-full text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                  >
+                    Don't have an account? Sign up
+                  </button>
+                  <button
+                    onClick={handleResetPassword}
+                    className="w-full text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                </>
+              )}
+              
+              {!isLogin && !isResetPassword && (
                 <button
-                  onClick={() => fillCredentials('developer@example.com', 'dev123')}
-                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                  onClick={toggleMode}
+                  className="w-full text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
                 >
-                  <span className="text-red-400 font-semibold">Developer:</span> developer@example.com / dev123
+                  Already have an account? Sign in
                 </button>
+              )}
+              
+              {isResetPassword && (
                 <button
-                  onClick={() => fillCredentials('admin@example.com', 'admin123')}
-                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
+                  onClick={handleBackToLogin}
+                  className="w-full text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
                 >
-                  <span className="text-blue-400 font-semibold">Admin:</span> admin@example.com / admin123
+                  Back to sign in
                 </button>
-                <button
-                  onClick={() => fillCredentials('guard@example.com', 'guard123')}
-                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
-                >
-                  <span className="text-green-400 font-semibold">Guard:</span> guard@example.com / guard123
-                </button>
-                <button
-                  onClick={() => fillCredentials('resident@example.com', 'resident123')}
-                  className="block w-full p-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200 text-left"
-                >
-                  <span className="text-purple-400 font-semibold">Resident:</span> resident@example.com / resident123
-                </button>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

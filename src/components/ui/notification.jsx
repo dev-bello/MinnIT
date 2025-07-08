@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BellIcon, XIcon, CheckIcon, AlertCircleIcon, FileTextIcon, UserIcon } from 'lucide-react';
+import { BellIcon, XIcon, CheckIcon, AlertCircleIcon, FileTextIcon, UserIcon, RefreshCwIcon } from 'lucide-react';
 import { Button } from './button';
 import { Badge } from './badge';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,12 +9,43 @@ export const NotificationDropdown = () => {
   const { user, getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, allUsers } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const dropdownRef = useRef(null);
 
-  // Ensure notifications is always an array
-  const rawNotifications = getUserNotifications(user?.id || '');
-  const notifications = Array.isArray(rawNotifications) ? rawNotifications : [];
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Load notifications
+  const loadNotifications = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setIsLoading(true);
+      setError('');
+      const data = await getUserNotifications(user.id);
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+      setError('Failed to load notifications');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadNotifications();
+  }, [user?.id]);
+
+  // Auto-refresh notifications every 30 seconds
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const interval = setInterval(() => {
+      loadNotifications();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -27,10 +58,21 @@ export const NotificationDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {
-      markNotificationAsRead(notification.id);
+      try {
+        await markNotificationAsRead(notification.id);
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notification.id ? { ...n, isRead: true } : n
+          )
+        );
+      } catch (err) {
+        console.error('Error marking notification as read:', err);
+      }
     }
+    
     if (
       user.role === 'admin' &&
       (notification.type === 'residency_change_request' || notification.type === 'profile_updated' || notification.type === 'profile_update_request')
@@ -44,8 +86,19 @@ export const NotificationDropdown = () => {
     setIsOpen(false);
   };
 
-  const handleMarkAllRead = () => {
-    markAllNotificationsAsRead(user.id);
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsAsRead(user.id);
+      // Update local state
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+      setError('Failed to mark all as read');
+    }
+  };
+
+  const handleRefresh = () => {
+    loadNotifications();
   };
 
   const getNotificationIcon = (type) => {
@@ -56,6 +109,10 @@ export const NotificationDropdown = () => {
         return <CheckIcon className="w-4 h-4 text-green-500" />;
       case 'profile_update':
         return <UserIcon className="w-4 h-4 text-purple-500" />;
+      case 'visitor_verification':
+        return <CheckIcon className="w-4 h-4 text-green-500" />;
+      case 'security_alert':
+        return <AlertCircleIcon className="w-4 h-4 text-red-500" />;
       default:
         return <AlertCircleIcon className="w-4 h-4 text-neutral-500" />;
     }
@@ -74,6 +131,8 @@ export const NotificationDropdown = () => {
       return date.toLocaleDateString();
     }
   };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -109,6 +168,15 @@ export const NotificationDropdown = () => {
                   Mark all read
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="text-sm text-neutral-600 hover:text-neutral-700"
+              >
+                <RefreshCwIcon className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
               {/* Mobile close button */}
               <span className="sm:hidden">
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
@@ -117,8 +185,24 @@ export const NotificationDropdown = () => {
               </span>
             </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-50 border-b border-red-200">
+              <div className="flex items-center gap-2 text-red-700 text-sm">
+                <AlertCircleIcon className="w-4 h-4" />
+                {error}
+              </div>
+            </div>
+          )}
+
           <div className="divide-y divide-neutral-100">
-            {notifications.length === 0 ? (
+            {isLoading ? (
+              <div className="p-6 text-center text-neutral-500">
+                <RefreshCwIcon className="w-8 h-8 mx-auto mb-2 text-neutral-300 animate-spin" />
+                <p>Loading notifications...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="p-6 text-center text-neutral-500">
                 <BellIcon className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
                 <p>No notifications yet</p>
@@ -159,6 +243,7 @@ export const NotificationDropdown = () => {
           </div>
         </div>
       )}
+      
       {modalData && (
         <Modal isOpen={!!modalData} onClose={() => setModalData(null)} zIndex={999999} size="sm" title="Request / Change Details" align="start">
           <div className="bg-white rounded-2xl absolute top-1 shadow-lg  border border-neutral-200 p-6 ">

@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentEstate, setCurrentEstate] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     // Get initial session
@@ -135,6 +136,25 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // Check if user is a super admin
+      const { data: superAdminProfile } = await supabase
+        .from('estate_admins')
+        .select(`*, estates(*)`)
+        .eq('user_id', userId)
+        .eq('role', 'super_admin')
+        .single();
+
+      if (superAdminProfile) {
+        setUserProfile({
+          role: 'super_admin',
+          ...superAdminProfile,
+          estate: superAdminProfile.estates
+        });
+        setCurrentEstate(superAdminProfile.estates);
+        console.log('User profile loaded:', userProfile);
+        return;
+      }
+
       // Default profile if no specific role found
       setUserProfile({
         role: 'user',
@@ -169,6 +189,54 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (email, password, name) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Registration error:', error.message);
+        throw new Error(error.message);
+      }
+      
+      return { success: true, user: data.user };
+    } catch (error) {
+      console.error('Registration error:', error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (email) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      
+      if (error) {
+        console.error('Password reset error:', error.message);
+        throw new Error(error.message);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Password reset error:', error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -194,71 +262,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const createEstateAdmin = async (adminData) => {
-    try {
-      // First create auth user
-      const { user: authUser } = await auth.signUp(
-        adminData.email, 
-        adminData.password,
-        { name: adminData.name, role: 'admin' }
-      );
-
-      // Then create admin profile
-      const admin = await db.createEstateAdmin({
-        ...adminData,
-        user_id: authUser.id
-      });
-
-      return admin;
-    } catch (error) {
-      console.error('Error creating estate admin:', error);
-      throw error;
-    }
+    // TODO: Implement admin-only/manual creation logic for estate admin
+    throw new Error('Manual admin creation only. Not available via public UI.');
   };
 
   const createGuard = async (guardData) => {
-    try {
-      // First create auth user
-      const { user: authUser } = await auth.signUp(
-        guardData.email,
-        guardData.password,
-        { name: guardData.name, role: 'guard' }
-      );
-
-      // Then create guard profile
-      const guard = await db.createGuard({
-        ...guardData,
-        user_id: authUser.id,
-        estate_id: currentEstate?.id
-      });
-
-      return guard;
-    } catch (error) {
-      console.error('Error creating guard:', error);
-      throw error;
-    }
+    // TODO: Implement admin-only/manual creation logic for guard
+    throw new Error('Manual guard creation only. Not available via public UI.');
   };
 
   const createResident = async (residentData) => {
-    try {
-      // First create auth user
-      const { user: authUser } = await auth.signUp(
-        residentData.email,
-        residentData.password,
-        { name: residentData.name, role: 'resident' }
-      );
-
-      // Then create resident profile
-      const resident = await db.createResident({
-        ...residentData,
-        user_id: authUser.id,
-        estate_id: currentEstate?.id
-      });
-
-      return resident;
-    } catch (error) {
-      console.error('Error creating resident:', error);
-      throw error;
-    }
+    // TODO: Implement admin-only/manual creation logic for resident
+    throw new Error('Manual resident creation only. Not available via public UI.');
   };
 
   const inviteVisitor = async (inviteData) => {
@@ -314,16 +329,76 @@ export const AuthProvider = ({ children }) => {
   // Fetch notifications for a user
   const getUserNotifications = async (userId) => {
     if (!userId) return [];
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
     }
-    return data;
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  };
+
+  const markAllNotificationsAsRead = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+      
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  };
+
+  const createNotification = async (notificationData) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert([notificationData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating notification:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
   };
 
   const value = {
@@ -331,7 +406,10 @@ export const AuthProvider = ({ children }) => {
     userProfile,
     currentEstate,
     isLoading,
+    error,
     login,
+    register,
+    resetPassword,
     logout,
     registerEstate,
     createEstateAdmin,
@@ -341,13 +419,17 @@ export const AuthProvider = ({ children }) => {
     verifyVisitorOTP,
     // Database access
     db,
+    // Notification functions
+    getUserNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    createNotification,
     // Utility functions
     getUserRole: () => userProfile?.role || 'user',
     isAdmin: () => userProfile?.role === 'admin',
     isGuard: () => userProfile?.role === 'guard',
     isResident: () => userProfile?.role === 'resident',
-    isDeveloper: () => userProfile?.role === 'developer',
-    getUserNotifications
+    isDeveloper: () => userProfile?.role === 'developer'
   };
 
   return (

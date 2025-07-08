@@ -76,8 +76,8 @@ export const HistoryFrame = () => {
         );
       
       // Guard Views
-      // case 'scan-code':
-      //   return <ScanCodeView />;
+      case 'scan-code':
+        return <ScanCodeView />;
       case 'verify-otp':
         return <VerifyOTPView />;
       

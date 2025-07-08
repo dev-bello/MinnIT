@@ -310,19 +310,6 @@ export const db = {
 
 // Auth helper functions
 export const auth = {
-  async signUp(email, password, userData) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData
-      }
-    })
-    
-    if (error) throw error
-    return data
-  },
-
   async signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
