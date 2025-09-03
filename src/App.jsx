@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LoginForm } from './components/auth/LoginForm';
-import { HistoryFrame } from './screens/HistoryFrame/HistoryFrame';
-import { LandingPage } from './components/landing/LandingPage';
-import { AlertCircleIcon, RefreshCwIcon } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { LoginForm } from "./components/auth/LoginForm";
+import { HistoryFrame } from "./screens/HistoryFrame/HistoryFrame";
+import { LandingPage } from "./components/landing/LandingPage";
+import SetPassword from "./components/auth/SetPassword";
+import { AlertCircleIcon, RefreshCwIcon } from "lucide-react";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -19,11 +20,11 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     this.setState({
       error: error,
-      errorInfo: errorInfo
+      errorInfo: errorInfo,
     });
-    
+
     // Log error to console in development
-    console.error('App Error:', error, errorInfo);
+    console.error("App Error:", error, errorInfo);
   }
 
   render() {
@@ -35,9 +36,12 @@ class ErrorBoundary extends React.Component {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircleIcon className="w-8 h-8 text-red-600" />
               </div>
-              <h2 className="text-xl font-bold text-red-800 mb-2">Something went wrong</h2>
+              <h2 className="text-xl font-bold text-red-800 mb-2">
+                Something went wrong
+              </h2>
               <p className="text-red-700 mb-6">
-                We encountered an unexpected error. Please try refreshing the page.
+                We encountered an unexpected error. Please try refreshing the
+                page.
               </p>
               <button
                 onClick={() => window.location.reload()}
@@ -57,8 +61,15 @@ class ErrorBoundary extends React.Component {
 
 const AppContent = () => {
   const { user, isLoading, error: authError } = useAuth();
-  const [currentView, setCurrentView] = useState('landing'); // 'landing', 'login', 'portal'
-  const [appError, setAppError] = useState('');
+  const [currentView, setCurrentView] = useState("landing"); // 'landing', 'login', 'portal', 'set-password'
+  const [appError, setAppError] = useState("");
+
+  useEffect(() => {
+    // Check for password recovery link from Supabase
+    if (window.location.hash.includes("type=recovery")) {
+      setCurrentView("set-password");
+    }
+  }, []);
 
   // Handle authentication errors
   useEffect(() => {
@@ -69,7 +80,7 @@ const AppContent = () => {
 
   // Clear errors when view changes
   useEffect(() => {
-    setAppError('');
+    setAppError("");
   }, [currentView]);
 
   if (isLoading) {
@@ -78,7 +89,9 @@ const AppContent = () => {
         <div className="glass-effect rounded-2xl p-8 animate-pulse">
           <div className="flex items-center space-x-4">
             <RefreshCwIcon className="w-8 h-8 text-primary-600 animate-spin" />
-            <div className="text-neutral-600 font-medium">Loading your workspace...</div>
+            <div className="text-neutral-600 font-medium">
+              Loading your workspace...
+            </div>
           </div>
         </div>
       </div>
@@ -91,29 +104,25 @@ const AppContent = () => {
   }
 
   // Handle view routing
-  if (currentView === 'landing') {
+  if (currentView === "landing") {
     return (
-      <LandingPage 
-        onEnterPortal={() => setCurrentView('login')}
-        onGoToLogin={() => setCurrentView('login')}
+      <LandingPage
+        onEnterPortal={() => setCurrentView("login")}
+        onGoToLogin={() => setCurrentView("login")}
       />
     );
   }
 
-  if (currentView === 'login') {
-    return (
-      <LoginForm 
-        onBackToLanding={() => setCurrentView('landing')}
-      />
-    );
+  if (currentView === "login") {
+    return <LoginForm onBackToLanding={() => setCurrentView("landing")} />;
+  }
+
+  if (currentView === "set-password") {
+    return <SetPassword />;
   }
 
   // Default fallback to login
-  return (
-    <LoginForm 
-      onBackToLanding={() => setCurrentView('landing')}
-    />
-  );
+  return <LoginForm onBackToLanding={() => setCurrentView("landing")} />;
 };
 
 export const App = () => {

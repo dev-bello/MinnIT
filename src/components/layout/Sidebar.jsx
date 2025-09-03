@@ -8,9 +8,9 @@ import {
   ShieldIcon,
   QrCodeIcon,
   ScanIcon,
+  SearchIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  SettingsIcon,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -25,8 +25,9 @@ export const Sidebar = ({ activeView, onViewChange }) => {
       return [
         { id: "dashboard", icon: HomeIcon, label: "Dashboard" },
         { id: "create-estate", icon: UserPlusIcon, label: "Create Estate" },
-        { id: "estates", icon: UsersIcon, label: "Estates (Totals/Filters)" },
-        { id: "profile", icon: SettingsIcon, label: "Profile" },
+        { id: "filter-search", icon: SearchIcon, label: "Filter Search" },
+        { id: "demo-requests", icon: UserPlusIcon, label: "Demo Requests" },
+        { id: "profile", icon: UserIcon, label: "Profile" },
       ];
     }
 
@@ -36,7 +37,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
         { id: "guards", icon: ShieldIcon, label: "Guards" },
         { id: "residents", icon: UserIcon, label: "Residents" },
         { id: "history", icon: HistoryIcon, label: "History" },
-        { id: "profile", icon: SettingsIcon, label: "Profile" },
+        { id: "profile", icon: UserIcon, label: "Profile" },
       ];
     }
 
@@ -44,7 +45,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
       return [
         { id: "dashboard", icon: HomeIcon, label: "Dashboard" },
         { id: "verify-otp", icon: ScanIcon, label: "Verify OTP" },
-        { id: "profile", icon: SettingsIcon, label: "Profile" },
+        { id: "profile", icon: UserIcon, label: "Profile" },
       ];
     }
 
@@ -53,7 +54,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
         { id: "dashboard", icon: HomeIcon, label: "Dashboard" },
         { id: "invite-visitor", icon: UserPlusIcon, label: "Invite Visitor" },
         { id: "my-invites", icon: UsersIcon, label: "My Invites" },
-        { id: "profile", icon: SettingsIcon, label: "Profile" },
+        { id: "profile", icon: UserIcon, label: "Profile" },
       ];
     }
 
