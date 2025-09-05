@@ -1,155 +1,347 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { db } from '../../../lib/supabase';
-import { RefreshCwIcon, SearchIcon, FilterIcon } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import Cookies from "js-cookie";
+import { Card, CardContent, CardHeader } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { Modal } from "../../ui/modal";
+import { supabase } from "../../../lib/supabase";
+import { RefreshCwIcon, SearchIcon, FilterIcon, PlusIcon } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export const SuperAdminEstates = () => {
-  const [estates, setEstates] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { user } = useAuth();
+  // Create Estate Form State
+  const [estateForm, setEstateForm] = useState({
+    name: "",
+    subdomain: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    contact_email: "",
+    contact_phone: "",
+  });
+  const [adminForm, setAdminForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const [search, setSearch] = useState('');
-  const [regStart, setRegStart] = useState('');
-  const [regEnd, setRegEnd] = useState('');
-  const [expStart, setExpStart] = useState('');
-  const [expEnd, setExpEnd] = useState('');
+  // Drafts State
+  const [isDraftsOpen, setIsDraftsOpen] = useState(false);
+  const [drafts, setDrafts] = useState([]);
 
-  const load = async () => {
+  const DRAFTS_KEY = "estate_drafts";
+  const readDrafts = () => {
     try {
-      setLoading(true);
-      setError('');
-      const data = await db.getEstates();
-      setEstates(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError('Failed to load estates');
+      const cookieData = Cookies.get(DRAFTS_KEY);
+      return cookieData ? JSON.parse(cookieData) : [];
+    } catch {
+      return [];
+    }
+  };
+  const writeDrafts = (next) => {
+    // Expires in 7 days
+    Cookies.set(DRAFTS_KEY, JSON.stringify(next), { expires: 7 });
+  };
+  const openDrafts = () => {
+    setDrafts(readDrafts());
+    setIsDraftsOpen(true);
+  };
+  const saveDraft = () => {
+    const id = Date.now().toString();
+    const createdAt = new Date().toISOString();
+    const next = [
+      { id, createdAt, estateForm, adminForm },
+      ...readDrafts(),
+    ].slice(0, 50);
+    writeDrafts(next);
+    setSuccessMsg("Draft saved locally");
+  };
+  const deleteDraft = (id) => {
+    const next = readDrafts().filter((d) => d.id !== id);
+    writeDrafts(next);
+    setDrafts(next);
+  };
+  const loadDraft = (id) => {
+    const d = readDrafts().find((x) => x.id === id);
+    if (!d) return;
+    setEstateForm(d.estateForm || {});
+    setAdminForm(d.adminForm || {});
+    setIsDraftsOpen(false);
+    setSuccessMsg("Draft loaded");
+  };
+
+  const handleEstateChange = (e) => {
+    setEstateForm({ ...estateForm, [e.target.name]: e.target.value });
+  };
+  const handleAdminChange = (e) => {
+    setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setSuccessMsg("");
+    setErrorMsg("");
+    try {
+      console.log("Submitting data:", { estateForm, adminForm });
+      const { data, error } = await supabase.functions.invoke(
+        "create-estate-and-admin",
+        {
+          body: {
+            estate_data: estateForm,
+            admin_email: adminForm.email,
+          },
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setSuccessMsg("Estate and admin created successfully! Invitation sent.");
+      // Reset forms
+      setEstateForm({
+        name: "",
+        subdomain: "",
+        address: "",
+        city: "",
+        state: "",
+        country: "",
+        contact_email: "",
+        contact_phone: "",
+      });
+      setAdminForm({ name: "", email: "", phone: "" });
+    } catch (err) {
+      console.error("Detailed error:", err);
+      setErrorMsg("Failed to create estate/admin. " + err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    const startReg = regStart ? new Date(regStart) : null;
-    const endReg = regEnd ? new Date(regEnd) : null;
-    const startExp = expStart ? new Date(expStart) : null;
-    const endExp = expEnd ? new Date(expEnd) : null;
-
-    return (estates || []).filter((e) => {
-      const matchesSearch = !s || (e.name || '').toLowerCase().includes(s) || (e.city || '').toLowerCase().includes(s) || (e.state || '').toLowerCase().includes(s);
-
-      const createdAt = e.created_at ? new Date(e.created_at) : null;
-      const inRegRange = (!startReg || (createdAt && createdAt >= startReg)) && (!endReg || (createdAt && createdAt <= endReg));
-
-      const expiry = e.expiry_date ? new Date(e.expiry_date) : null; // optional
-      const inExpRange = (!startExp || (expiry && expiry >= startExp)) && (!endExp || (expiry && expiry <= endExp));
-
-      return matchesSearch && inRegRange && inExpRange;
-    });
-  }, [estates, search, regStart, regEnd, expStart, expEnd]);
-
-  const resetFilters = () => {
-    setSearch('');
-    setRegStart('');
-    setRegEnd('');
-    setExpStart('');
-    setExpEnd('');
-  };
-
   return (
-    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-neutral-900">Estates</h2>
-          <p className="text-neutral-500 text-sm">Totals and filters by registration/expiry date.</p>
+    <>
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900">
+              Create Estate
+            </h2>
+            <p className="text-neutral-500 text-sm">
+              Add a new estate and its designated admin.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={openDrafts}
+              variant="outline"
+              className="border-neutral-300 text-neutral-700 hover:bg-neutral-100 shrink-0"
+            >
+              View Drafts
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={load} variant="outline" className="border-neutral-300 text-neutral-700 hover:bg-neutral-100 shrink-0" disabled={loading}>
-            <RefreshCwIcon className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
-          </Button>
-        </div>
+
+        <Card className="w-full bg-white border border-neutral-200 shadow-sm">
+          <CardHeader className="text-center pb-6">
+            <h1 className="text-2xl font-bold text-neutral-900 mb-1">
+              Create Estate & Admin
+            </h1>
+            <p className="text-neutral-500">
+              Add a new estate and its designated admin
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 mb-3">
+                  Estate Details
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    name="name"
+                    value={estateForm.name}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Estate Name"
+                    required
+                  />
+                  <input
+                    name="subdomain"
+                    value={estateForm.subdomain}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Subdomain (e.g. estateA)"
+                    required
+                  />
+                  <input
+                    name="address"
+                    value={estateForm.address}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Address"
+                    required
+                  />
+                  <input
+                    name="city"
+                    value={estateForm.city}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="City"
+                    required
+                  />
+                  <input
+                    name="state"
+                    value={estateForm.state}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="State"
+                    required
+                  />
+                  <input
+                    name="country"
+                    value={estateForm.country}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Country"
+                    required
+                  />
+                  <input
+                    name="contact_email"
+                    value={estateForm.contact_email}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Contact Email"
+                    required
+                  />
+                  <input
+                    name="contact_phone"
+                    value={estateForm.contact_phone}
+                    onChange={handleEstateChange}
+                    className="input-modern"
+                    placeholder="Contact Phone"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 mb-3">
+                  Admin Details
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    name="name"
+                    value={adminForm.name}
+                    onChange={handleAdminChange}
+                    className="input-modern"
+                    placeholder="Admin Name"
+                    required
+                  />
+                  <input
+                    name="email"
+                    value={adminForm.email}
+                    onChange={handleAdminChange}
+                    className="input-modern"
+                    placeholder="Admin Email"
+                    required
+                  />
+                  <input
+                    name="phone"
+                    value={adminForm.phone}
+                    onChange={handleAdminChange}
+                    className="input-modern"
+                    placeholder="Admin Phone"
+                    required
+                  />
+                </div>
+              </div>
+              {successMsg && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                  {successMsg}
+                </div>
+              )}
+              {errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                  {errorMsg}
+                </div>
+              )}
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={saveDraft}
+                  className="border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+                >
+                  Save Draft
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-3 text-base font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white transition-all duration-200"
+                >
+                  {isLoading ? "Creating..." : "Create"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card className="bg-white border border-neutral-200">
-        <CardHeader className="pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
-              <div className="flex items-center gap-2 w-full">
-                <SearchIcon className="w-4 h-4 text-neutral-400 hidden sm:block" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name/city/state"
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-neutral-300 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
-              <div className="flex items-center gap-2 w-full">
-                <FilterIcon className="w-4 h-4 text-neutral-400 hidden sm:block" />
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full text-sm">
-                  <span className="text-neutral-500">Reg:</span>
-                  <input type="date" value={regStart} onChange={(e) => setRegStart(e.target.value)} className="w-full sm:w-auto flex-1 px-2 py-2 rounded-lg border border-neutral-300" />
-                  <span className="text-neutral-500">to</span>
-                  <input type="date" value={regEnd} onChange={(e) => setRegEnd(e.target.value)} className="w-full sm:w-auto flex-1 px-2 py-2 rounded-lg border border-neutral-300" />
+      {/* Drafts Modal */}
+      <Modal
+        isOpen={isDraftsOpen}
+        onClose={() => setIsDraftsOpen(false)}
+        size="md"
+        title="Drafts"
+        align="start"
+      >
+        <p className="text-gray-600 m-1 text-sm">
+          Drafts expire after <span className="text-red-400 ">7</span> days
+        </p>
+        <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+          {drafts.length === 0 ? (
+            <div className="text-neutral-500">No drafts yet</div>
+          ) : (
+            <div className="space-y-3">
+              {drafts.map((d) => (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between p-3 border border-neutral-200 rounded-xl"
+                >
+                  <div className="text-sm">
+                    <div className="font-semibold text-neutral-800">
+                      {d.estateForm?.name || "Untitled Estate"}
+                    </div>
+                    <div className="text-neutral-500">
+                      {new Date(d.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => loadDraft(d.id)}
+                      className="border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+                    >
+                      Load
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => deleteDraft(d.id)}
+                      className="border-red-200 text-red-700 hover:bg-red-50"
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
-              <div className="flex items-center gap-2 w-full">
-                <FilterIcon className="w-4 h-4 text-neutral-400 hidden sm:block" />
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full text-sm">
-                  <span className="text-neutral-500">Expiry:</span>
-                  <input type="date" value={expStart} onChange={(e) => setExpStart(e.target.value)} className="w-full sm:w-auto flex-1 px-2 py-2 rounded-lg border border-neutral-300" />
-                  <span className="text-neutral-500">to</span>
-                  <input type="date" value={expEnd} onChange={(e) => setExpEnd(e.target.value)} className="w-full sm:w-auto flex-1 px-2 py-2 rounded-lg border border-neutral-300" />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-stretch sm:items-center gap-2 w-full">
-              <Button variant="outline" className="w-full sm:w-auto border-neutral-300 text-neutral-700 hover:bg-neutral-100" onClick={resetFilters}>Reset</Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-neutral-500">
-                <tr>
-                  <th className="text-left py-2 pr-4">Estate</th>
-                  <th className="text-left py-2 pr-4">City</th>
-                  <th className="text-left py-2 pr-4">Registered</th>
-                  <th className="text-left py-2 pr-4">Expiry</th>
-                  <th className="text-left py-2 pr-4">Residents</th>
-                  <th className="text-left py-2 pr-4">Guards</th>
-                </tr>
-              </thead>
-              <tbody className="text-neutral-800">
-                {filtered.map((e) => (
-                  <tr key={e.id} className="border-t border-neutral-200 hover:bg-neutral-50">
-                    <td className="py-2 pr-4 font-medium">{e.name}</td>
-                    <td className="py-2 pr-4">{e.city || '-'}</td>
-                    <td className="py-2 pr-4">{e.created_at ? new Date(e.created_at).toLocaleDateString() : '-'}</td>
-                    <td className="py-2 pr-4">{e.expiry_date ? new Date(e.expiry_date).toLocaleDateString() : '-'}</td>
-                    <td className="py-2 pr-4">{e.residents?.[0]?.count || 0}</td>
-                    <td className="py-2 pr-4">{e.guards?.[0]?.count || 0}</td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-4 text-neutral-500">No estates match your filters</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          )}
+        </div>
+      </Modal>
+    </>
   );
 };
