@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Cookies from "js-cookie";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Modal } from "../../ui/modal";
-import { db } from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import { RefreshCwIcon, SearchIcon, FilterIcon, PlusIcon } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -35,13 +36,15 @@ export const SuperAdminEstates = () => {
   const DRAFTS_KEY = "estate_drafts";
   const readDrafts = () => {
     try {
-      return JSON.parse(localStorage.getItem(DRAFTS_KEY) || "[]");
+      const cookieData = Cookies.get(DRAFTS_KEY);
+      return cookieData ? JSON.parse(cookieData) : [];
     } catch {
       return [];
     }
   };
   const writeDrafts = (next) => {
-    localStorage.setItem(DRAFTS_KEY, JSON.stringify(next));
+    // Expires in 7 days
+    Cookies.set(DRAFTS_KEY, JSON.stringify(next), { expires: 7 });
   };
   const openDrafts = () => {
     setDrafts(readDrafts());
@@ -85,11 +88,11 @@ export const SuperAdminEstates = () => {
     setErrorMsg("");
     try {
       console.log("Submitting data:", { estateForm, adminForm });
-      const { data, error } = await db.functions.invoke(
+      const { data, error } = await supabase.functions.invoke(
         "create-estate-and-admin",
         {
           body: {
-            estate_name: estateForm.name,
+            estate_data: estateForm,
             admin_email: adminForm.email,
           },
         }
@@ -280,7 +283,7 @@ export const SuperAdminEstates = () => {
                   disabled={isLoading}
                   className="flex-1 py-3 text-base font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white transition-all duration-200"
                 >
-                  {isLoading ? "Creating..." : "Create Estate & Admin"}
+                  {isLoading ? "Creating..." : "Create"}
                 </Button>
               </div>
             </form>
@@ -296,6 +299,9 @@ export const SuperAdminEstates = () => {
         title="Drafts"
         align="start"
       >
+        <p className="text-gray-600 m-1 text-sm">
+          Drafts expire after <span className="text-red-400 ">7</span> days
+        </p>
         <div className="bg-white rounded-2xl p-6 border border-neutral-200">
           {drafts.length === 0 ? (
             <div className="text-neutral-500">No drafts yet</div>

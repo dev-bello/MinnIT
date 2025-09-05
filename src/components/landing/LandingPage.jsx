@@ -18,7 +18,9 @@ import {
   UserIcon,
 } from "lucide-react";
 
-export const LandingPage = ({ onEnterPortal, onGoToLogin }) => {
+import { Link } from "react-router-dom";
+
+export const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -303,14 +305,15 @@ export const LandingPage = ({ onEnterPortal, onGoToLogin }) => {
             >
               Reviews
             </a>
-            <Button
-              onClick={onGoToLogin}
-              variant="outline"
-              className="border-2 border-white/20 text-white hover:bg-white/10 px-4 py-2 rounded-xl font-medium transition-all duration-300 backdrop-blur-sm"
-            >
-              <LogInIcon className="w-4 h-4 mr-2" />
-              Login
-            </Button>
+            <Link to="/login">
+              <Button
+                variant="outline"
+                className="border-2 border-white/20 text-white hover:bg-white/10 px-4 py-2 rounded-xl font-medium transition-all duration-300 backdrop-blur-sm"
+              >
+                <LogInIcon className="w-4 h-4 mr-2" />
+                Login
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -365,13 +368,12 @@ export const LandingPage = ({ onEnterPortal, onGoToLogin }) => {
                 <LogInIcon className="w-4 h-4 mr-2" />
                 Request Demo
               </Button>
-              <Button
-                onClick={onEnterPortal}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300"
-              >
-                Log In
-                <ArrowRightIcon className="w-4 h-4 ml-2" />
-              </Button>
+              <Link to="/login" className="w-full">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                  Log In
+                  <ArrowRightIcon className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
         )}
@@ -415,13 +417,14 @@ export const LandingPage = ({ onEnterPortal, onGoToLogin }) => {
                 <PlayIcon className="w-5 h-5 mr-2" />
                 Request Demo
               </Button>
-              <Button
-                onClick={onEnterPortal}
-                variant="outline"
-                className="border-2 border-white/20 text-white hover:bg-white/10 px-8 py-4 rounded-2xl text-lg font-semibold backdrop-blur-sm transition-all duration-300 w-full sm:w-auto"
-              >
-                Log In
-              </Button>
+              <Link to="/login">
+                <Button
+                  variant="outline"
+                  className="border-2 border-white/20 text-white hover:bg-white/10 px-8 py-4 rounded-2xl text-lg font-semibold backdrop-blur-sm transition-all duration-300 w-full sm:w-auto"
+                >
+                  Log In
+                </Button>
+              </Link>
             </div>
 
             {/* Stats */}
@@ -842,13 +845,12 @@ export const LandingPage = ({ onEnterPortal, onGoToLogin }) => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              onClick={onEnterPortal}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto"
-            >
-              <ShieldCheckIcon className="w-5 h-5 mr-2" />
-              Start Your Journey
-            </Button>
+            <Link to="/login">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto">
+                <ShieldCheckIcon className="w-5 h-5 mr-2" />
+                Start Your Journey
+              </Button>
+            </Link>
             <Button
               variant="outline"
               onClick={() => openDemoBlank("cta")}

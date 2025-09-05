@@ -1,137 +1,75 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { LoginForm } from "./components/auth/LoginForm";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { HistoryFrame } from "./screens/HistoryFrame/HistoryFrame";
 import { LandingPage } from "./components/landing/LandingPage";
+import { LoginForm } from "./components/auth/LoginForm";
 import SetPassword from "./components/auth/SetPassword";
-import { AlertCircleIcon, RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
-// Error Boundary Component
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    this.setState({
-      error: error,
-      errorInfo: errorInfo,
-    });
-
-    // Log error to console in development
-    console.error("App Error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
-            <div className="glass-effect rounded-2xl p-8 shadow-soft border-0 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircleIcon className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-bold text-red-800 mb-2">
-                Something went wrong
-              </h2>
-              <p className="text-red-700 mb-6">
-                We encountered an unexpected error. Please try refreshing the
-                page.
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                Refresh Page
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-const AppContent = () => {
-  const { user, isLoading, error: authError } = useAuth();
-  const [currentView, setCurrentView] = useState("landing"); // 'landing', 'login', 'portal', 'set-password'
-  const [appError, setAppError] = useState("");
-
-  useEffect(() => {
-    // Check for password recovery link from Supabase
-    if (window.location.hash.includes("type=recovery")) {
-      setCurrentView("set-password");
-    }
-  }, []);
-
-  // Handle authentication errors
-  useEffect(() => {
-    if (authError) {
-      setAppError(authError);
-    }
-  }, [authError]);
-
-  // Clear errors when view changes
-  useEffect(() => {
-    setAppError("");
-  }, [currentView]);
+// A wrapper for protected routes that checks for a user session.
+const ProtectedRoute = () => {
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 flex items-center justify-center">
-        <div className="glass-effect rounded-2xl p-8 animate-pulse">
+        <div className="glass-effect rounded-2xl p-8">
           <div className="flex items-center space-x-4">
             <RefreshCwIcon className="w-8 h-8 text-primary-600 animate-spin" />
-            <div className="text-neutral-600 font-medium">
-              Loading your workspace...
-            </div>
+            <div className="text-neutral-600 font-medium">Loading...</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Show main application if user is authenticated
-  if (user) {
-    return <HistoryFrame />;
-  }
+  return user ? <Outlet /> : <Navigate to="/" replace />;
+};
 
-  // Handle view routing
-  if (currentView === "landing") {
+// A wrapper for public routes that redirects if a user is already logged in.
+const PublicRoute = () => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
     return (
-      <LandingPage
-        onEnterPortal={() => setCurrentView("login")}
-        onGoToLogin={() => setCurrentView("login")}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 flex items-center justify-center">
+        <div className="glass-effect rounded-2xl p-8">
+          <div className="flex items-center space-x-4">
+            <RefreshCwIcon className="w-8 h-8 text-primary-600 animate-spin" />
+            <div className="text-neutral-600 font-medium">Loading...</div>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  if (currentView === "login") {
-    return <LoginForm onBackToLanding={() => setCurrentView("landing")} />;
-  }
-
-  if (currentView === "set-password") {
-    return <SetPassword />;
-  }
-
-  // Default fallback to login
-  return <LoginForm onBackToLanding={() => setCurrentView("landing")} />;
+  return user ? <Navigate to="/dashboard" replace /> : <Outlet />;
 };
 
 export const App = () => {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <Routes>
+        {/* Public Routes */}
+        <Route element={<PublicRoute />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/auth/set-password" element={<SetPassword />} />
+        </Route>
+
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<HistoryFrame />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 };
 
