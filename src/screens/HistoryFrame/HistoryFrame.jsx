@@ -16,7 +16,8 @@ import { Button } from "../../components/ui/button";
 import { NotificationDropdown } from "../../components/ui/notification";
 import { Modal } from "../../components/ui/modal";
 import { SuperAdminEstates } from "../../components/views/superadmin/SuperAdminEstates";
-
+import { SuperAdminFilterSearch } from "../../components/views/superadmin/SuperAdminFilterSearch";
+import { SuperAdminDemoRequests } from "../../components/views/superadmin/SuperAdminDemoRequests";
 import { useAuth } from "../../contexts/AuthContext";
 import { MenuIcon, XIcon, UserIcon, LogOutIcon } from "lucide-react";
 
@@ -91,6 +92,12 @@ export const HistoryFrame = () => {
       // Super Admin Views
       case "estates":
         return <SuperAdminEstates />;
+      case "create-estate":
+        return <SuperAdminEstates />;
+      case "filter-search":
+        return <SuperAdminFilterSearch />;
+      case "demo-requests":
+        return <SuperAdminDemoRequests />;
 
       // Guard Views
       case "scan-code":
