@@ -52,15 +52,35 @@ serve(async (req) => {
     // 3. Send the invitation email
     const { error: inviteError } =
       await supabaseAdmin.auth.resetPasswordForEmail(admin_email, {
-        redirectTo: "https://yourapp.com/auth/set-password", // Your callback URL
+        redirectTo: "https://minnit.vercel.app/auth/create-password",
       });
 
     if (inviteError) throw inviteError;
 
-    return new Response(JSON.stringify({ success: true, estate: estateData }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    // 4. Insert the admin into the 'estate_admins' table
+    const { data: adminData, error: adminError } = await supabaseAdmin
+      .from("estate_admins")
+      .insert([
+        {
+          id: userData.user.id,
+          estate_id: estateData.id,
+          role: "admin",
+          name: userData.user.email,
+          email: admin_email,
+        },
+      ])
+      .select()
+      .single();
+
+    if (adminError) throw adminError;
+
+    return new Response(
+      JSON.stringify({ success: true, estate: estateData, admin: adminData }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error("Error processing request:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {

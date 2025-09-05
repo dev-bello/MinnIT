@@ -102,7 +102,6 @@ export const LoginForm = () => {
 
   const handleBackToLogin = () => {
     resetForm();
-    setIsLogin(true);
     setIsResetPassword(false);
   };
 
