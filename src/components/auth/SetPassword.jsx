@@ -28,7 +28,6 @@ const SetPassword = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === "PASSWORD_RECOVERY") {
-        // Session is handled automatically by Supabase client
       }
     });
 
