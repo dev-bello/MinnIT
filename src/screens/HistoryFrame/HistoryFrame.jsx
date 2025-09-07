@@ -138,7 +138,7 @@ export const HistoryFrame = () => {
           <div className="mb-6 p-4 rounded-xl bg-white/80 shadow border border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
             <div>
               <div className="text-lg font-bold">
-                Welcome, {userProfile.name || "User"}!
+                Welcome, {userProfile.full_name || "User"}!
               </div>
               <div className="text-sm text-neutral-700">
                 Role: <span className="font-semibold">{userProfile.role}</span>

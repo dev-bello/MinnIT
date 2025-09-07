@@ -102,7 +102,15 @@ export const SuperAdminEstates = () => {
         throw new Error(error.message);
       }
 
-      setSuccessMsg("Estate and admin created successfully! Invitation sent.");
+      if (data && data.temporaryPassword) {
+        setSuccessMsg(
+          `Estate and admin created successfully! Temporary password: ${data.temporaryPassword}`
+        );
+      } else {
+        setSuccessMsg(
+          "Estate and admin created successfully! Invitation sent."
+        );
+      }
       // Reset forms
       setEstateForm({
         name: "",

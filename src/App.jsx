@@ -13,7 +13,6 @@ import { LoginForm } from "./components/auth/LoginForm";
 import SetPassword from "./components/auth/SetPassword";
 import { RefreshCwIcon } from "lucide-react";
 
-
 const ProtectedRoute = () => {
   const { user, isLoading } = useAuth();
 
@@ -32,7 +31,6 @@ const ProtectedRoute = () => {
 
   return user ? <Outlet /> : <Navigate to="/" replace />;
 };
-
 
 const PublicRoute = () => {
   const { user, isLoading } = useAuth();
@@ -61,7 +59,7 @@ export const App = () => {
         <Route element={<PublicRoute />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginForm />} />
-          <Route path="/auth/create-password" element={<SetPassword />} />
+          <Route path="/set-password" element={<SetPassword />} />
         </Route>
 
         {/* Protected Routes */}

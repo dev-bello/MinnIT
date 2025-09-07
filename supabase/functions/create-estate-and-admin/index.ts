@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { sendTemporaryPasswordEmail } from "../_shared/email.ts";
 
 serve(async (req) => {
-  // This is needed if you're planning to invoke your function from a browser.
+  // to invoke  function from a browser.
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -37,23 +38,23 @@ serve(async (req) => {
 
     if (estateError) throw estateError;
 
-    // 2. Create the admin user
+    // 2. Generate a temporary password
+    const temporaryPassword = Math.random().toString(36).slice(-8);
+
+    // 3. Create the admin user
     const { data: userData, error: userError } =
       await supabaseAdmin.auth.admin.createUser({
         email: admin_email,
+        password: temporaryPassword,
         email_confirm: true,
-        user_metadata: { role: "admin", estate_id: estateData.id },
+        user_metadata: {
+          role: "admin",
+          estate_id: estateData.id,
+          force_password_change: true,
+        },
       });
 
     if (userError) throw userError;
-
-    // 3. Send the invitation email
-    const { error: inviteError } =
-      await supabaseAdmin.auth.resetPasswordForEmail(admin_email, {
-        redirectTo: "https://minnit.vercel.app/auth/create-password",
-      });
-
-    if (inviteError) throw inviteError;
 
     // 4. Insert the admin into the 'estate_admins' table
     const { data: adminData, error: adminError } = await supabaseAdmin
@@ -61,9 +62,10 @@ serve(async (req) => {
       .insert([
         {
           id: userData.user.id,
+          user_id: userData.user.id,
           estate_id: estateData.id,
           role: "admin",
-          name: userData.user.email,
+          full_name: admin_email,
           email: admin_email,
         },
       ])
@@ -72,8 +74,15 @@ serve(async (req) => {
 
     if (adminError) throw adminError;
 
+    // 5. Send the temporary password email
+    await sendTemporaryPasswordEmail(admin_email, temporaryPassword);
+
     return new Response(
-      JSON.stringify({ success: true, estate: estateData, admin: adminData }),
+      JSON.stringify({
+        success: true,
+        estate: estateData,
+        admin: adminData,
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

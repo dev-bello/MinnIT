@@ -76,6 +76,9 @@ export const LoginForm = () => {
           } else {
             setError(result.error);
           }
+        } else if (result.needsPasswordChange) {
+          // Redirect to password change page
+          window.location.href = "/set-password";
         }
       }
     } catch (error) {

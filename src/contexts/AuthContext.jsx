@@ -11,47 +11,28 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUser(session.user);
-          await loadUserProfile(session.user.id);
-        }
-      } catch (error) {
-        // silent
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
+    setIsLoading(true);
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      try {
-        if (session?.user) {
-          setUser(session.user);
-          await loadUserProfile(session.user.id);
-        } else {
-          setUser(null);
-          setUserProfile(null);
-          setCurrentEstate(null);
-        }
-      } catch (error) {
-        // silent
-      } finally {
-        setIsLoading(false);
-      }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadUserProfile(user.id);
+    } else {
+      // Clear profile and estate when user is logged out
+      setUserProfile(null);
+      setCurrentEstate(null);
+    }
+  }, [user]);
 
   const loadUserProfile = async (userId) => {
     try {
@@ -61,7 +42,7 @@ export const AuthProvider = ({ children }) => {
         .select("*")
         .eq("user_id", userId)
         .eq("role", "super_admin")
-        .single();
+        .maybeSingle();
 
       if (superAdminProfile) {
         setUserProfile({
@@ -82,7 +63,7 @@ export const AuthProvider = ({ children }) => {
         .from("estate_admins")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (adminProfile) {
         setUserProfile({
@@ -104,7 +85,7 @@ export const AuthProvider = ({ children }) => {
           .from("estate_admins")
           .select("*")
           .eq("email", user.email)
-          .single();
+          .maybeSingle();
         if (adminByEmail) {
           setUserProfile({
             role: "admin",
@@ -125,7 +106,7 @@ export const AuthProvider = ({ children }) => {
         .from("guards")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (guardProfile) {
         setUserProfile({
@@ -146,7 +127,7 @@ export const AuthProvider = ({ children }) => {
         .from("residents")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (residentProfile) {
         setUserProfile({
@@ -182,6 +163,13 @@ export const AuthProvider = ({ children }) => {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Check if the user needs to change their password
+      if (data.user.user_metadata?.force_password_change) {
+        // Redirect to password change page
+        window.location.href = "/set-password";
+        return { success: true, user: data.user, needsPasswordChange: true };
       }
 
       return { success: true, user: data.user };

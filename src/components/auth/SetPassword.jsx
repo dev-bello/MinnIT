@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Input } from "../ui/input";
@@ -15,6 +16,7 @@ import {
 
 const SetPassword = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -63,6 +65,18 @@ const SetPassword = () => {
     if (error) {
       setError(error.message);
     } else {
+      // Clear the force_password_change flag
+      const { error: metadataError } = await supabase.auth.updateUser({
+        user_metadata: { ...user.user_metadata, force_password_change: false },
+      });
+
+      if (metadataError) {
+        console.error(
+          "Failed to clear force_password_change flag:",
+          metadataError
+        );
+      }
+
       setSuccess("Password updated successfully! Redirecting to login...");
       setTimeout(() => {
         navigate("/login");
