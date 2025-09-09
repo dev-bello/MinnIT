@@ -284,7 +284,7 @@ export const DashboardView = ({ onViewChange }) => {
           <div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-neutral-800 mb-2">
               Welcome back,{" "}
-              <span className="gradient-text">{userProfile?.name}</span>
+              <span className="gradient-text">{userProfile?.full_name}</span>
             </h2>
             <p className="text-sm sm:text-base text-neutral-600 font-medium">
               Here's what's happening in your workspace today

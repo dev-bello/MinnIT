@@ -34,6 +34,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchEstateDetails = async () => {
+      if (userProfile && userProfile.estate_id) {
+        try {
+          const { data: estate, error } = await supabase
+            .from("estates")
+            .select("*")
+            .eq("id", userProfile.estate_id)
+            .single();
+
+          if (error) {
+            throw error;
+          }
+          setCurrentEstate(estate);
+        } catch (error) {
+          console.error("Error fetching estate details:", error);
+          setError("Could not load estate details.");
+        }
+      }
+    };
+
+    fetchEstateDetails();
+  }, [userProfile]);
+
   const loadUserProfile = async (userId) => {
     try {
       // Super admin first
@@ -149,7 +173,8 @@ export const AuthProvider = ({ children }) => {
         name: user?.user_metadata?.name || user?.email || "Guest",
       });
     } catch (error) {
-      // silent
+      console.error("Error loading user profile:", error);
+      setError("Failed to load user profile.");
     }
   };
 
@@ -228,25 +253,31 @@ export const AuthProvider = ({ children }) => {
     try {
       await supabase.auth.signOut();
     } catch (error) {
-      // silent
+      console.error("Error logging out:", error);
+      setError("Failed to log out.");
     }
   };
 
-  const createEstateAdmin = async (adminData) => {
-    // TODO: Implement admin-only/manual creation logic for estate admin
-    throw new Error("Manual admin creation only. Not available via public UI.");
+  const updateUserPassword = async (newPassword) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) {
+        throw new Error(error.message);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   };
 
-  const createGuard = async (guardData) => {
-    // TODO: Implement admin-only/manual creation logic for guard
-    throw new Error("Manual guard creation only. Not available via public UI.");
+  const createGuardUser = async (guardData) => {
+    return await db.createGuardUser(guardData);
   };
 
-  const createResident = async (residentData) => {
-    // TODO: Implement admin-only/manual creation logic for resident
-    throw new Error(
-      "Manual resident creation only. Not available via public UI."
-    );
+  const createResidentUser = async (residentData) => {
+    return await db.createResidentUser(residentData);
   };
 
   const inviteVisitor = async (inviteData) => {
@@ -307,10 +338,14 @@ export const AuthProvider = ({ children }) => {
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) {
+        console.error("Error fetching notifications:", error);
+        setError("Could not load notifications.");
         return [];
       }
       return data || [];
     } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setError("Could not load notifications.");
       return [];
     }
   };
@@ -326,6 +361,8 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
     } catch (error) {
+      console.error("Error marking notification as read:", error);
+      setError("Failed to update notification.");
       throw error;
     }
   };
@@ -342,6 +379,8 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
     } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      setError("Failed to update notifications.");
       throw error;
     }
   };
@@ -360,6 +399,8 @@ export const AuthProvider = ({ children }) => {
 
       return data;
     } catch (error) {
+      console.error("Error creating notification:", error);
+      setError("Failed to create notification.");
       throw error;
     }
   };
@@ -374,9 +415,9 @@ export const AuthProvider = ({ children }) => {
     register,
     resetPassword,
     logout,
-    createEstateAdmin,
-    createGuard,
-    createResident,
+    updateUserPassword,
+    createGuardUser,
+    createResidentUser,
     inviteVisitor,
     verifyVisitorOTP,
     // Database access

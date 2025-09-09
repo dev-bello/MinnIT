@@ -130,13 +130,13 @@ export const db = {
     return data;
   },
 
-  async createGuard(guard) {
-    const { data, error } = await supabase
-      .from("guards")
-      .insert([guard])
-      .select()
-      .single();
-
+  async createGuardUser(guard_data) {
+    const { data, error } = await supabase.functions.invoke(
+      "create-guard-user",
+      {
+        body: { guard_data },
+      }
+    );
     if (error) throw error;
     return data;
   },
@@ -180,13 +180,13 @@ export const db = {
     return data;
   },
 
-  async createResident(resident) {
-    const { data, error } = await supabase
-      .from("residents")
-      .insert([resident])
-      .select()
-      .single();
-
+  async createResidentUser(resident_data) {
+    const { data, error } = await supabase.functions.invoke(
+      "create-resident-user",
+      {
+        body: resident_data,
+      }
+    );
     if (error) throw error;
     return data;
   },
@@ -237,7 +237,7 @@ export const db = {
     const inviteWithOtp = {
       ...invite,
       otp_code: otpData,
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     };
 
     const { data, error } = await supabase

@@ -1,4 +1,5 @@
 import React from "react";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import {
   BrowserRouter as Router,
@@ -54,19 +55,21 @@ const PublicRoute = () => {
 export const App = () => {
   return (
     <AuthProvider>
-      <Routes>
-        {/* Public Routes */}
-        <Route element={<PublicRoute />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/set-password" element={<SetPassword />} />
-        </Route>
+      <ErrorBoundary>
+        <Routes>
+          {/* Public Routes */}
+          <Route element={<PublicRoute />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/set-password" element={<SetPassword />} />
+          </Route>
 
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<HistoryFrame />} />
-        </Route>
-      </Routes>
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<HistoryFrame />} />
+          </Route>
+        </Routes>
+      </ErrorBoundary>
     </AuthProvider>
   );
 };

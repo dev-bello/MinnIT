@@ -60,11 +60,13 @@ const SetPassword = () => {
     setError("");
     setSuccess("");
 
-    const { error } = await supabase.auth.updateUser({ password: password });
+    try {
+      const { error } = await supabase.auth.updateUser({ password: password });
 
-    if (error) {
-      setError(error.message);
-    } else {
+      if (error) {
+        throw new Error(error.message);
+      }
+
       // Clear the force_password_change flag
       const { error: metadataError } = await supabase.auth.updateUser({
         user_metadata: { ...user.user_metadata, force_password_change: false },
@@ -81,8 +83,11 @@ const SetPassword = () => {
       setTimeout(() => {
         navigate("/login");
       }, 2000);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -135,7 +140,7 @@ const SetPassword = () => {
                 </label>
                 <div className="relative">
                   <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                  <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -143,6 +148,7 @@ const SetPassword = () => {
                     className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="Enter your new password"
                     required
+                    error={!!error}
                   />
                   <button
                     type="button"
@@ -167,14 +173,15 @@ const SetPassword = () => {
                 </label>
                 <div className="relative">
                   <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                  <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => setConfirmPassword(e.garet.value)}
                     className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="Confirm your new password"
                     required
+                    error={!!error}
                   />
                   <button
                     type="button"

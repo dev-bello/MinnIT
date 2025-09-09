@@ -54,7 +54,12 @@ serve(async (req) => {
         },
       });
 
-    if (userError) throw userError;
+    if (userError) {
+      if (userError.message.includes("already registered")) {
+        throw new Error("An admin with this email already exists.");
+      }
+      throw userError;
+    }
 
     // 4. Insert the admin into the 'estate_admins' table
     const { data: adminData, error: adminError } = await supabaseAdmin

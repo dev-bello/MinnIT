@@ -174,7 +174,7 @@ export const LoginForm = () => {
                 </label>
                 <div className="relative">
                   <MailIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                  <Input
                     id="email"
                     type="email"
                     value={email}
@@ -182,6 +182,7 @@ export const LoginForm = () => {
                     className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="Enter your email"
                     required
+                    error={!!error}
                   />
                 </div>
               </div>
@@ -198,7 +199,7 @@ export const LoginForm = () => {
                     </label>
                     <div className="relative">
                       <LockIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
+                      <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         value={password}
@@ -206,6 +207,7 @@ export const LoginForm = () => {
                         className="w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="Enter your password"
                         required
+                        error={!!error}
                       />
                       <button
                         type="button"

@@ -15,16 +15,20 @@ import { ProfileView } from "../../components/views/ProfileView";
 import { Button } from "../../components/ui/button";
 import { NotificationDropdown } from "../../components/ui/notification";
 import { Modal } from "../../components/ui/modal";
+import { LogoutModal } from "../../components/ui/LogoutModal";
 import { SuperAdminEstates } from "../../components/views/superadmin/SuperAdminEstates";
 import { SuperAdminFilterSearch } from "../../components/views/superadmin/SuperAdminFilterSearch";
 import { SuperAdminDemoRequests } from "../../components/views/superadmin/SuperAdminDemoRequests";
+import { UserProfileBanner } from "../../components/layout/UserProfileBanner";
+import { MobileHeader } from "../../components/layout/MobileHeader";
+import { ErrorDisplay } from "../../components/ui/ErrorDisplay";
 import { useAuth } from "../../contexts/AuthContext";
 import { MenuIcon, XIcon, UserIcon, LogOutIcon } from "lucide-react";
 
 export const HistoryFrame = () => {
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, userProfile, logout } = useAuth();
+  const { user, userProfile, logout, error } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Close sidebar when clicking outside
@@ -133,111 +137,18 @@ export const HistoryFrame = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
       <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6">
-        {/* User Profile Banner */}
-        {userProfile && (
-          <div className="mb-6 p-4 rounded-xl bg-white/80 shadow border border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-            <div>
-              <div className="text-lg font-bold">
-                Welcome, {userProfile.full_name || "User"}!
-              </div>
-              <div className="text-sm text-neutral-700">
-                Role: <span className="font-semibold">{userProfile.role}</span>
-              </div>
-              {userProfile.email && (
-                <div className="text-sm text-neutral-700">
-                  Email: <span className="font-mono">{userProfile.email}</span>
-                </div>
-              )}
-              {userProfile.unique_id && (
-                <div className="text-sm text-neutral-700">
-                  Unique ID:{" "}
-                  <span className="font-mono">{userProfile.unique_id}</span>
-                </div>
-              )}
-              {userProfile.phone && (
-                <div className="text-sm text-neutral-700">
-                  Phone: <span className="font-mono">{userProfile.phone}</span>
-                </div>
-              )}
-              {userProfile.permissions && (
-                <div className="text-sm text-neutral-700">
-                  Permissions:{" "}
-                  <span className="font-mono">
-                    {JSON.stringify(userProfile.permissions)}
-                  </span>
-                </div>
-              )}
-              {userProfile.estate && (
-                <div className="text-sm text-neutral-700">
-                  Estate:{" "}
-                  <span className="font-mono">
-                    {userProfile.estate?.name ||
-                      JSON.stringify(userProfile.estate)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <ErrorDisplay message={error} />
+        <UserProfileBanner userProfile={userProfile} />
 
-        {/* Mobile Header with Menu Button */}
-        <div className="lg:hidden glass-effect rounded-2xl p-4 mb-4 sm:mb-6 shadow-soft border-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg sm:text-xl font-bold font-display gradient-text">
-                MinnIT NG
-              </h1>
-              {user && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleProfileClick}
-                    className={`w-8 h-8 bg-gradient-to-br ${getRoleColor(
-                      user.role
-                    )} rounded-xl flex items-center justify-center shadow-soft hover:shadow-md transition-shadow cursor-pointer`}
-                  >
-                    <UserIcon className="w-4 h-4 text-white" />
-                  </button>
-                  <div className="hidden sm:block">
-                    <div className="text-xs font-semibold text-neutral-800 truncate">
-                      {user.name}
-                    </div>
-                    <div
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold border ${getRoleBadgeColor(
-                        user.role
-                      )}`}
-                    >
-                      {user.role.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {user && (
-                <Button
-                  onClick={() => setShowLogoutModal(true)}
-                  variant="outline"
-                  size="sm"
-                  className="p-2 rounded-xl bg-white/50 hover:bg-white/80 transition-colors"
-                  title="Logout"
-                >
-                  <LogOutIcon className="w-4 h-4" />
-                </Button>
-              )}
-              <NotificationDropdown />
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="menu-button p-2 rounded-xl bg-white/50 hover:bg-white/80 transition-colors"
-              >
-                {sidebarOpen ? (
-                  <XIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <MenuIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        <MobileHeader
+          user={user}
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+          onProfileClick={handleProfileClick}
+          onLogoutClick={() => setShowLogoutModal(true)}
+          getRoleColor={getRoleColor}
+          getRoleBadgeColor={getRoleBadgeColor}
+        />
 
         {/* Desktop Header */}
         <div className="hidden lg:block">
@@ -274,35 +185,14 @@ export const HistoryFrame = () => {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <Modal
-          isOpen={showLogoutModal}
-          onClose={() => setShowLogoutModal(false)}
-        >
-          <div className="p-6">
-            <h3 className="text-lg font-bold mb-4">Confirm Logout</h3>
-            <p className="mb-6">Are you sure you want to log out?</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setShowLogoutModal(false)}
-                className="button-secondary"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowLogoutModal(false);
-                  logout();
-                }}
-                className="button-primary"
-              >
-                Logout
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          setShowLogoutModal(false);
+          logout();
+        }}
+      />
     </div>
   );
 };

@@ -13,21 +13,33 @@ export async function sendTemporaryPasswordEmail(
   temporaryPassword: string
 ) {
   try {
-    await resend.emails.send({
-      from: "noreply@minnit.ng",
+    const { data, error } = await resend.emails.send({
+      from: "MinnIT <onboarding@resend.dev>",
       to: email,
       subject: "Your Login Credentials",
       html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; width: 100%; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
         <p>Hello,</p>
         <p>Your account has been created. Here is your temporary password:</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
+        <p style="color: red;"><strong>Email:</strong> ${email}</p>
+        <p style="color: red;"><strong>Temporary Password:</strong> ${temporaryPassword}</p>
         <p>Please log in and change your password immediately.</p>
-      `,
+        <a href="https://minnit.vercel.app/login">Click here to log in</a>
+      </div>
+        `,
     });
-    console.log("Password reset email sent successfully to", email);
+
+    if (error) {
+      throw error;
+    }
+
+    console.log(
+      `Temporary password email sent successfully to ${email}. Response: ${JSON.stringify(
+        data
+      )}`
+    );
   } catch (error) {
-    console.error("Error sending password reset email:", error);
-    throw new Error("Failed to send password reset email.");
+    console.error(`Error sending temporary password email to ${email}:`, error);
+    throw new Error(`Failed to send temporary password email to ${email}.`);
   }
 }
