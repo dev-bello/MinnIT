@@ -891,14 +891,16 @@ export const LandingPage = () => {
               </span>
             </div>
             <div></div>
-            <div className="text-gray-400 text-sm">
-              <h1 className="text-lg font-bold text-blue-400">Contact Info</h1>
-              <p className="text-gray-400 w-full text-sm">
+            <div className="text-gray-400 text-sm ">
+              <h1 className="text-lg font-bold text-blue-400 m-2">
+                Contact Info
+              </h1>
+              <p className="text-gray-400 w-full text-sm m-2">
                 NO: 55 NELSON MANDELA STREET , ASOKORO, ABUJA, ASOKORO , FCT,
                 NIGERIA
               </p>
-              <a>voxclesolutions@gmail.com</a>
-              <p>+234 (70)1 933 4606</p>
+              <p className="m-1">voxclesolutions@gmail.com</p>
+              <p className="m-1">+234 (70)1 933 4606</p>
             </div>
           </div>
         </div>
