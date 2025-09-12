@@ -881,18 +881,24 @@ export const LandingPage = () => {
       <footer className="relative z-10 px-4 sm:px-6 lg:px-8 py-12 border-t border-white/10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <ShieldCheckIcon className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <div className="flex flex-col items-start space-x-3 mb-4 md:mb-0">
+              <span className="text-xl font-bold bg-blue-400 bg-clip-text text-transparent">
                 MinnIT
               </span>
+              <span className="text-gray-400">
+                © 2025 <a href="#">Voxcle Solutions</a>. All rights reserved.
+                Securing properties worldwide.
+              </span>
             </div>
-
+            <div></div>
             <div className="text-gray-400 text-sm">
-              © 2025 <a href="#">Voxcle Solutions</a>. All rights reserved.
-              Securing properties worldwide.
+              <h1 className="text-lg font-bold text-blue-400">Contact Info</h1>
+              <p className="text-gray-400 w-full text-sm">
+                NO: 55 NELSON MANDELA STREET , ASOKORO, ABUJA, ASOKORO , FCT,
+                NIGERIA
+              </p>
+              <a>voxclesolutions@gmail.com</a>
+              <p>+234 (70)1 933 4606</p>
             </div>
           </div>
         </div>

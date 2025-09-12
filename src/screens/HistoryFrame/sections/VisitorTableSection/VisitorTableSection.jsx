@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../../../lib/supabase";
+import { useAuth } from "../../../../contexts/AuthContext";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../../components/ui/card";
@@ -11,251 +13,194 @@ import {
   TableHeader,
   TableRow,
 } from "../../../../components/ui/table";
-import { 
-  SearchIcon, 
-  FilterIcon, 
-  CalendarIcon, 
-  UsersIcon, 
-  EyeIcon, 
+import {
+  SearchIcon,
+  FilterIcon,
+  CalendarIcon,
+  UsersIcon,
+  EyeIcon,
   UserIcon,
   PhoneIcon,
   MailIcon,
   MapPinIcon,
   ClockIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
 } from "lucide-react";
 
 export const VisitorTableSection = ({ userRole }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [purposeFilter, setPurposeFilter] = useState('');
+  const { userProfile } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [purposeFilter, setPurposeFilter] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [visitorData, setVisitorData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const fetchVisitorData = async () => {
+    if (!userProfile) return;
+    setLoading(true);
+    let query = supabase.from("visitor_invites").select(`
+      *,
+      residents ( name, apartment_number )
+    `);
 
-  // Data for visitor records - filtered based on user role
-  const allVisitorData = [
-    {
-      id: 1,
-      date: "10-01-23",
-      time: "10:30:28",
-      name: "Bello Yahaya",
-      contactInfo: "12345@gmail.com",
-      verifiedBy: "guard 14",
-      status: "Active",
-      resident: "John Doe",
-      purpose: "Business Meeting",
-      apartment: "A-101",
-      phone: "09012345678",
-      email: "bello@email.com",
-      entryTime: "10:30:28",
-      notes: "Business meeting with resident"
-    },
-    {
-      id: 2,
-      date: "17-01-25",
-      time: "8:00:23",
-      name: "Sarah Johnson",
-      contactInfo: "0908641283747",
-      verifiedBy: "guard 28",
-      status: "expired",
-      resident: "Jane Smith",
-      purpose: "Personal Visit",
-      apartment: "B-205",
-      phone: "0908641283747",
-      email: "sarah@email.com",
-      entryTime: "8:00:23",
-      notes: "Personal visit to friend"
-    },
-    {
-      id: 3,
-      date: "02-02-25",
-      time: "21:00:03",
-      name: "Mike Wilson",
-      contactInfo: "070462416738",
-      verifiedBy: "guard 8",
-      status: "Active",
-      resident: "John Doe",
-      purpose: "Delivery",
-      apartment: "A-101",
-      phone: "070462416738",
-      email: "mike@delivery.com",
-      entryTime: "21:00:03",
-      notes: "Food delivery service"
-    },
-    {
-      id: 4,
-      date: "03-02-25",
-      time: "00:00:01",
-      name: "Lisa Brown",
-      contactInfo: "1wufh@gmail.com",
-      verifiedBy: "Guard 2",
-      status: "Active",
-      resident: "Bob Johnson",
-      purpose: "Family Visit",
-      apartment: "C-301",
-      phone: "08012345678",
-      email: "lisa@email.com",
-      entryTime: "00:00:01",
-      notes: "Late night family visit"
-    },
-    {
-      id: 5,
-      date: "04-02-25",
-      time: "14:15:30",
-      name: "David Chen",
-      contactInfo: "david@email.com",
-      verifiedBy: "guard 5",
-      status: "expired",
-      resident: "Alice Wong",
-      purpose: "Maintenance",
-      apartment: "D-405",
-      phone: "07098765432",
-      email: "david@email.com",
-      entryTime: "14:15:30",
-      notes: "Plumbing maintenance work"
-    },
-    {
-      id: 6,
-      date: "05-02-25",
-      time: "09:45:12",
-      name: "Emma Davis",
-      contactInfo: "0701234567",
-      verifiedBy: "guard 12",
-      status: "Active",
-      resident: "John Doe",
-      purpose: "Social Visit",
-      apartment: "A-101",
-      phone: "0701234567",
-      email: "emma@email.com",
-      entryTime: "09:45:12",
-      notes: "Social visit with resident"
+    if (userRole === "resident") {
+      query = query.eq("resident_id", userProfile.id);
+    } else if (userRole === "admin") {
+      query = query.eq("estate_id", userProfile.estate_id);
     }
-  ];
 
-  // Filter data based on user role
-  const getVisitorData = () => {
-    if (userRole === 'resident') {
-      // Residents only see their own visitors
-      return allVisitorData.filter(visitor => visitor.resident === "John Doe");
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
+
+    if (error) {
+      console.error("Error fetching visitor data:", error);
+    } else {
+      setVisitorData(data);
     }
-    return allVisitorData;
+    setLoading(false);
   };
 
-  const visitorData = getVisitorData();
+  useEffect(() => {
+    fetchVisitorData();
+  }, [userProfile, userRole]);
+
+  const handleCancelInvite = async (inviteId) => {
+    if (window.confirm("Are you sure you want to cancel this invitation?")) {
+      try {
+        await supabase
+          .from("visitor_invites")
+          .update({ status: "expired" })
+          .eq("id", inviteId);
+        fetchVisitorData();
+      } catch (error) {
+        console.error("Error canceling invite:", error);
+        alert("Failed to cancel invite.");
+      }
+    }
+  };
 
   // Apply filters
-  const filteredVisitorData = visitorData.filter(visitor => {
-    const matchesSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         visitor.contactInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         visitor.resident.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         visitor.verifiedBy.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !statusFilter || visitor.status.toLowerCase() === statusFilter.toLowerCase();
-    
-    const matchesDate = !dateFilter || visitor.date.includes(dateFilter);
-    
+  const filteredVisitorData = visitorData.filter((visitor) => {
+    const matchesSearch =
+      visitor.visitor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      visitor.residents?.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      !statusFilter ||
+      visitor.status.toLowerCase() === statusFilter.toLowerCase();
+
+    const matchesDate =
+      !dateFilter ||
+      new Date(visitor.created_at).toLocaleDateString().includes(dateFilter);
+
     const matchesPurpose = !purposeFilter || visitor.purpose === purposeFilter;
-    
+
     return matchesSearch && matchesStatus && matchesDate && matchesPurpose;
   });
-
   const handleViewVisitor = (visitor) => {
     setSelectedVisitor(visitor);
     setIsViewModalOpen(true);
   };
 
-
-
   const getTableHeaders = () => {
     const baseHeaders = [
-      { key: 'date', label: 'Date' },
-      { key: 'time', label: 'Time' },
-      { key: 'name', label: 'Name' },
-      { key: 'contactInfo', label: 'Contact' },
+      { key: "date", label: "Date" },
+      { key: "time", label: "Time" },
+      { key: "name", label: "Visitor Name" },
     ];
 
-    if (userRole === 'admin') {
+    if (userRole === "admin") {
       return [
         ...baseHeaders,
-        { key: 'resident', label: 'Resident' },
-        { key: 'purpose', label: 'Purpose' },
-        { key: 'verifiedBy', label: 'Verified By' },
-        { key: 'status', label: 'Status' },
-        { key: 'actions', label: 'Actions' }
+        { key: "resident", label: "Resident" },
+        { key: "purpose", label: "Purpose" },
+        { key: "status", label: "Status" },
+        { key: "actions", label: "Actions" },
       ];
     }
 
-    if (userRole === 'guard') {
+    if (userRole === "resident") {
       return [
         ...baseHeaders,
-        { key: 'resident', label: 'Resident' },
-        { key: 'purpose', label: 'Purpose' },
-        { key: 'status', label: 'Status' },
-        { key: 'actions', label: 'Actions' }
+        { key: "purpose", label: "Purpose" },
+        { key: "status", label: "Status" },
+        { key: "actions", label: "Actions" },
       ];
     }
 
-    if (userRole === 'resident') {
+    if (userRole === "guard") {
       return [
         ...baseHeaders,
-        { key: 'purpose', label: 'Purpose' },
-        { key: 'status', label: 'Status' },
-        { key: 'actions', label: 'Actions' }
+        { key: "resident", label: "Resident" },
+        { key: "purpose", label: "Purpose" },
+        { key: "status", label: "Status" },
+        { key: "actions", label: "Actions" },
       ];
     }
 
-    return [...baseHeaders, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Actions' }];
+    return [
+      ...baseHeaders,
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions" },
+    ];
   };
 
   const headers = getTableHeaders();
 
   const renderCellContent = (visitor, headerKey) => {
     switch (headerKey) {
-      case 'date':
+      case "date":
         return (
           <span className="text-sm text-neutral-600">
-            {visitor.date}
+            {new Date(visitor.created_at).toLocaleDateString()}
           </span>
         );
-      case 'time':
+      case "time":
         return (
           <span className="text-sm text-neutral-600">
-            {visitor.time}
+            {new Date(visitor.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </span>
         );
-      case 'name':
-      case 'contactInfo':
-      case 'resident':
-      case 'purpose':
+      case "name":
         return (
           <span className="text-sm font-medium text-neutral-800 truncate block">
-            {visitor[headerKey]}
+            {visitor.visitor_name}
           </span>
         );
-      case 'verifiedBy':
+      case "resident":
         return (
           <span className="text-sm font-medium text-neutral-800">
-            {visitor.verifiedBy}
+            {visitor.residents?.name}
           </span>
         );
-      case 'status':
+      case "purpose":
         return (
-          <Badge
-            className={
-              visitor.status.toLowerCase() === "active"
-                ? "bg-green-100 text-green-800 border-green-200"
-                : "bg-red-100 text-red-800 border-red-200"
-            }
-          >
-            {visitor.status}
-          </Badge>
+          <span className="text-sm font-medium text-neutral-800">
+            {visitor.purpose}
+          </span>
         );
-      case 'actions':
+      case "status":
+        const status = visitor.status?.toLowerCase();
+        let badgeClass = "bg-neutral-100 text-neutral-800 border-neutral-200";
+        if (status === "approved" || status === "active") {
+          badgeClass = "bg-green-100 text-green-800 border-green-200";
+        } else if (status === "expired" || status === "used") {
+          badgeClass = "bg-red-100 text-red-800 border-red-200";
+        } else if (status === "pending") {
+          badgeClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+        }
+        return <Badge className={badgeClass}>{visitor.status}</Badge>;
+      case "actions":
         return (
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-2">
             <Button
               size="sm"
               onClick={() => handleViewVisitor(visitor)}
@@ -264,6 +209,16 @@ export const VisitorTableSection = ({ userRole }) => {
             >
               <EyeIcon className="w-4 h-4" />
             </Button>
+            {userRole === "resident" && visitor.status === "approved" && (
+              <Button
+                size="sm"
+                onClick={() => handleCancelInvite(visitor.id)}
+                className="button-table-action bg-red-500 hover:bg-red-600"
+                title="Cancel Invite"
+              >
+                <XCircleIcon className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         );
       default:
@@ -271,8 +226,8 @@ export const VisitorTableSection = ({ userRole }) => {
     }
   };
 
-  const statusOptions = ['Active', 'Expired'];
-  const purposeOptions = [...new Set(visitorData.map(v => v.purpose))];
+  const statusOptions = ["Active", "Expired"];
+  const purposeOptions = [...new Set(visitorData.map((v) => v.purpose))];
 
   const VisitorDetailView = ({ visitor }) => (
     <div className="space-y-6">
@@ -282,14 +237,22 @@ export const VisitorTableSection = ({ userRole }) => {
           <UserIcon className="w-8 h-8 text-white" />
         </div>
         <div>
-          <h4 className="text-xl font-bold text-neutral-800">{visitor.name}</h4>
+          <h4 className="text-xl font-bold text-neutral-800">
+            {visitor.visitor_name}
+          </h4>
           <p className="text-neutral-600">{visitor.purpose}</p>
         </div>
         <Badge
           className={`ml-auto ${
-            visitor.status.toLowerCase() === "active"
+            visitor.status?.toLowerCase() === "approved" ||
+            visitor.status?.toLowerCase() === "active"
               ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-red-100 text-red-800 border-red-200"
+              : visitor.status?.toLowerCase() === "expired" ||
+                visitor.status?.toLowerCase() === "used"
+              ? "bg-red-100 text-red-800 border-red-200"
+              : visitor.status?.toLowerCase() === "pending"
+              ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+              : "bg-neutral-100 text-neutral-800 border-neutral-200"
           }`}
         >
           {visitor.status}
@@ -299,94 +262,90 @@ export const VisitorTableSection = ({ userRole }) => {
       {/* Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h5 className="font-semibold text-neutral-800 border-b pb-2">Visitor Information</h5>
+          <h5 className="font-semibold text-neutral-800 border-b pb-2">
+            Visitor Information
+          </h5>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <UserIcon className="w-5 h-5 text-neutral-400" />
               <div>
                 <p className="text-sm text-neutral-600">Name</p>
-                <p className="font-medium text-neutral-800">{visitor.name}</p>
+                <p className="font-medium text-neutral-800">
+                  {visitor.visitor_name}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <PhoneIcon className="w-5 h-5 text-neutral-400" />
-              <div>
-                <p className="text-sm text-neutral-600">Phone</p>
-                <p className="font-medium text-neutral-800">{visitor.phone}</p>
+            {visitor.visitor_phone && (
+              <div className="flex items-center gap-3">
+                <PhoneIcon className="w-5 h-5 text-neutral-400" />
+                <div>
+                  <p className="text-sm text-neutral-600">Phone</p>
+                  <p className="font-medium text-neutral-800">
+                    {visitor.visitor_phone}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <MailIcon className="w-5 h-5 text-neutral-400" />
-              <div>
-                <p className="text-sm text-neutral-600">Email</p>
-                <p className="font-medium text-neutral-800">{visitor.email}</p>
+            )}
+            {visitor.visitor_email && (
+              <div className="flex items-center gap-3">
+                <MailIcon className="w-5 h-5 text-neutral-400" />
+                <div>
+                  <p className="text-sm text-neutral-600">Email</p>
+                  <p className="font-medium text-neutral-800">
+                    {visitor.visitor_email}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex items-center gap-3">
               <MapPinIcon className="w-5 h-5 text-neutral-400" />
               <div>
                 <p className="text-sm text-neutral-600">Purpose</p>
-                <p className="font-medium text-neutral-800">{visitor.purpose}</p>
+                <p className="font-medium text-neutral-800">
+                  {visitor.purpose}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h5 className="font-semibold text-neutral-800 border-b pb-2">Visit Details</h5>
+          <h5 className="font-semibold text-neutral-800 border-b pb-2">
+            Visit Details
+          </h5>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <UserIcon className="w-5 h-5 text-neutral-400" />
               <div>
                 <p className="text-sm text-neutral-600">Resident</p>
-                <p className="font-medium text-neutral-800">{visitor.resident}</p>
+                <p className="font-medium text-neutral-800">
+                  {visitor.residents?.name}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <MapPinIcon className="w-5 h-5 text-neutral-400" />
               <div>
                 <p className="text-sm text-neutral-600">Apartment</p>
-                <p className="font-medium text-neutral-800">{visitor.apartment}</p>
+                <p className="font-medium text-neutral-800">
+                  {visitor.residents?.apartment_number}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <ClockIcon className="w-5 h-5 text-neutral-400" />
               <div>
                 <p className="text-sm text-neutral-600">Entry Time</p>
-                <p className="font-medium text-neutral-800">{visitor.entryTime}</p>
+                <p className="font-medium text-neutral-800">
+                  {new Date(visitor.created_at).toLocaleString()}
+                </p>
               </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Information */}
-      <div className="space-y-4">
-        <h5 className="font-semibold text-neutral-800 border-b pb-2">Additional Information</h5>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <UserIcon className="w-5 h-5 text-neutral-400" />
-            <div>
-              <p className="text-sm text-neutral-600">Verified By</p>
-              <p className="font-medium text-neutral-800">{visitor.verifiedBy}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-5 h-5 text-neutral-400 mt-1">
-              <CheckCircleIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm text-neutral-600">Notes</p>
-              <p className="font-medium text-neutral-800">{visitor.notes}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-
-
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -413,8 +372,10 @@ export const VisitorTableSection = ({ userRole }) => {
                   className="input-modern flex-1 sm:min-w-[150px]"
                 >
                   <option value="">All Status</option>
-                  {statusOptions.map(status => (
-                    <option key={status} value={status}>{status}</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -425,8 +386,10 @@ export const VisitorTableSection = ({ userRole }) => {
                   className="input-modern flex-1 sm:min-w-[150px]"
                 >
                   <option value="">All Purposes</option>
-                  {purposeOptions.map(purpose => (
-                    <option key={purpose} value={purpose}>{purpose}</option>
+                  {purposeOptions.map((purpose) => (
+                    <option key={purpose} value={purpose}>
+                      {purpose}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -443,10 +406,10 @@ export const VisitorTableSection = ({ userRole }) => {
               {(searchTerm || statusFilter || dateFilter || purposeFilter) && (
                 <Button
                   onClick={() => {
-                    setSearchTerm('');
-                    setStatusFilter('');
-                    setDateFilter('');
-                    setPurposeFilter('');
+                    setSearchTerm("");
+                    setStatusFilter("");
+                    setDateFilter("");
+                    setPurposeFilter("");
                   }}
                   variant="outline"
                   className="button-secondary mobile-full"
@@ -457,7 +420,8 @@ export const VisitorTableSection = ({ userRole }) => {
             </div>
           </div>
           <div className="mt-4 text-xs sm:text-sm text-neutral-500">
-            Showing {filteredVisitorData.length} of {visitorData.length} visitors
+            Showing {filteredVisitorData.length} of {visitorData.length}{" "}
+            visitors
           </div>
         </CardContent>
       </Card>
@@ -470,7 +434,7 @@ export const VisitorTableSection = ({ userRole }) => {
               <TableHeader className="table-header">
                 <TableRow>
                   {headers.map((header) => (
-                    <TableHead 
+                    <TableHead
                       key={header.key}
                       className="text-center font-semibold text-neutral-800 whitespace-nowrap"
                     >
@@ -483,7 +447,10 @@ export const VisitorTableSection = ({ userRole }) => {
                 {filteredVisitorData.map((visitor, index) => (
                   <TableRow key={visitor.id} className="table-row">
                     {headers.map((header) => (
-                      <TableCell key={header.key} className="text-center whitespace-nowrap">
+                      <TableCell
+                        key={header.key}
+                        className="text-center whitespace-nowrap"
+                      >
                         {renderCellContent(visitor, header.key)}
                       </TableCell>
                     ))}
@@ -495,8 +462,12 @@ export const VisitorTableSection = ({ userRole }) => {
           {filteredVisitorData.length === 0 && (
             <div className="text-center py-8 sm:py-12 text-neutral-500">
               <UsersIcon className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-neutral-300" />
-              <p className="text-base sm:text-lg font-medium">No visitors found</p>
-              <p className="text-xs sm:text-sm">Try adjusting your search criteria</p>
+              <p className="text-base sm:text-lg font-medium">
+                No visitors found
+              </p>
+              <p className="text-xs sm:text-sm">
+                Try adjusting your search criteria
+              </p>
             </div>
           )}
         </CardContent>
@@ -511,8 +482,6 @@ export const VisitorTableSection = ({ userRole }) => {
       >
         {selectedVisitor && <VisitorDetailView visitor={selectedVisitor} />}
       </Modal>
-
-
     </div>
   );
 };

@@ -89,7 +89,7 @@ export const HistoryFrame = () => {
         return (
           <div className="space-y-4 sm:space-y-6">
             <VisitorHistorySection />
-            <VisitorTableSection userRole={user?.role} />
+            <VisitorTableSection userRole={userProfile?.role} />
           </div>
         );
 
