@@ -80,7 +80,7 @@ export const LandingPage = () => {
   const stats = [
     { number: "99.9%", label: "Uptime", suffix: "" },
     { number: "500", label: "Properties", suffix: "+" },
-    { number: "50K", label: "Residents", suffix: "+" },
+    { number: "-", label: "Users", suffix: "" },
     { number: "24/7", label: "Support", suffix: "" },
   ];
 
