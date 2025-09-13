@@ -253,7 +253,7 @@ export const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-slate-900 via-blue-900  text-white overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -271,10 +271,7 @@ export const LandingPage = () => {
                 : "-translate-x-10 opacity-0"
             }`}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldCheckIcon className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold bg-blue-400 bg-clip-text text-transparent">
               MinnIT
             </span>
           </div>
@@ -369,7 +366,7 @@ export const LandingPage = () => {
                 Request Demo
               </Button>
               <Link to="/login" className="w-full">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                <Button className="w-full bg-blue-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300">
                   Log In
                   <ArrowRightIcon className="w-4 h-4 ml-2" />
                 </Button>
@@ -390,7 +387,7 @@ export const LandingPage = () => {
             }`}
           >
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse">
+              <span className="bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 bg-clip-text text-transparent animate-pulse">
                 Smart Visitor
               </span>
               <br />
@@ -412,7 +409,7 @@ export const LandingPage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Button
                 onClick={() => openDemoBlank("hero")}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto"
+                className="bg-blue-600 hover:bg-blue-800 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto"
               >
                 <PlayIcon className="w-5 h-5 mr-2" />
                 Request Demo
@@ -467,7 +464,7 @@ export const LandingPage = () => {
       >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 bg-clip-text text-transparent">
               Powerful Features
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
@@ -513,10 +510,10 @@ export const LandingPage = () => {
 
             {/* Feature Visualization */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-3xl p-8 backdrop-blur-sm border border-white/10">
-                <div className="aspect-square bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-2xl flex items-center justify-center">
+              <div className="bg-gradient-to-br from-blue-600/20 to-blue-400/20 rounded-3xl p-8 backdrop-blur-sm border border-white/10">
+                <div className="aspect-square bg-gradient-to-br from-blue-500/30 to-blue-400/30 rounded-2xl flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl animate-pulse">
+                    <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl animate-pulse">
                       {React.createElement(features[activeFeature].icon, {
                         className: "w-12 h-12 text-white",
                       })}
@@ -538,11 +535,11 @@ export const LandingPage = () => {
       {/* About Section */}
       <section
         id="about"
-        className="relative z-10 px-4 sm:px-6 lg:px-8 py-24 bg-gradient-to-r from-blue-900/60 to-purple-900/60 backdrop-blur-sm"
+        className="relative z-10 px-4 sm:px-6 lg:px-8 py-24 bg-gradient-to-r from-blue-900/60 to-blue-700/60 backdrop-blur-sm"
       >
         <div className="max-w-4xl mx-auto text-center">
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
               About MinnIT
             </h2>
             <p className="text-lg text-gray-200 mb-6 text-justify">
@@ -571,7 +568,7 @@ export const LandingPage = () => {
       >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 bg-clip-text text-transparent">
               Proposed Pricing Bundle: The VAMS Solution
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
@@ -698,7 +695,7 @@ export const LandingPage = () => {
             </div>
 
             {/* Totals Illustration */}
-            <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-3xl p-8 border border-blue-400/30">
+            <div className="bg-gradient-to-br from-blue-600/20 to-blue-400/20 backdrop-blur-sm rounded-3xl p-8 border border-blue-400/30">
               <h3 className="text-2xl font-bold text-white mb-4">
                 Total Cost of the Whole Bundle (Currently)
               </h3>
@@ -745,7 +742,7 @@ export const LandingPage = () => {
             <div className="max-w-md mx-auto">
               <Button
                 onClick={openDemoFromPricing}
-                className="w-full py-4 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg"
+                className="w-full py-4 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-900 transition-all text-white text-lg"
               >
                 Get Started
               </Button>
@@ -794,7 +791,7 @@ export const LandingPage = () => {
       >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 bg-clip-text text-transparent">
               Trusted by Thousands
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
@@ -834,7 +831,7 @@ export const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 px-4 sm:px-6 lg:px-8 py-32 bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm">
+      <section className="relative z-10 px-4 sm:px-6 lg:px-8 py-32 bg-blue-600/20  backdrop-blur-sm">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-5xl font-bold mb-6 text-white">
             Ready to Transform Your Property?
@@ -846,9 +843,9 @@ export const LandingPage = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/login">
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto">
+              <Button className="bg-blue-600 hover:bg-blue-800 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25 w-full sm:w-auto">
                 <ShieldCheckIcon className="w-5 h-5 mr-2" />
-                Start Your Journey
+                Get Started
               </Button>
             </Link>
             <Button
@@ -885,16 +882,14 @@ export const LandingPage = () => {
               <span className="text-xl font-bold bg-blue-400 bg-clip-text text-transparent">
                 MinnIT
               </span>
-              <span className="text-gray-400">
+              <span className="text-gray-400 m-1">
                 © 2025 <a href="#">Voxcle Solutions</a>. All rights reserved.
                 Securing properties worldwide.
               </span>
             </div>
             <div></div>
             <div className="text-gray-400 text-sm ">
-              <h1 className="text-lg font-bold text-blue-400 m-2">
-                Contact Info
-              </h1>
+              <h1 className="text-lg font-bold text-blue-400 ">Contact Info</h1>
               <p className="text-gray-400 w-full text-sm m-2">
                 NO: 55 NELSON MANDELA STREET , ASOKORO, ABUJA, ASOKORO , FCT,
                 NIGERIA
