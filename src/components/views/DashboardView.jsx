@@ -23,6 +23,7 @@ import {
   RefreshCwIcon,
   AlertCircleIcon,
 } from "lucide-react";
+import { ResidentDashboardView } from "./resident/ResidentDashboardView";
 
 export const DashboardView = ({ onViewChange }) => {
   const { userProfile, getUserRole } = useAuth();
@@ -130,26 +131,7 @@ export const DashboardView = ({ onViewChange }) => {
       },
     ];
   } else if (role === "resident") {
-    allLogs = [
-      {
-        time: "10:30 AM",
-        action: "Visitor invited",
-        type: "success",
-        icon: UserPlusIcon,
-      },
-      {
-        time: "09:45 AM",
-        action: "Invitation sent",
-        type: "info",
-        icon: ActivityIcon,
-      },
-      {
-        time: "09:00 AM",
-        action: "Portal accessed",
-        type: "info",
-        icon: ActivityIcon,
-      },
-    ];
+    return <ResidentDashboardView />;
   }
 
   const logsToShow = showAllLogs ? allLogs : allLogs.slice(0, 5);
