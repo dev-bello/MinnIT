@@ -52,7 +52,6 @@ export const Sidebar = ({ activeView, onViewChange }) => {
     if (userProfile?.role === "resident") {
       return [
         { id: "dashboard", icon: HomeIcon, label: "Dashboard" },
-        { id: "invite-visitor", icon: UserPlusIcon, label: "Invite Visitor" },
         { id: "my-invites", icon: UsersIcon, label: "My Invites" },
         { id: "profile", icon: UserIcon, label: "Profile" },
       ];

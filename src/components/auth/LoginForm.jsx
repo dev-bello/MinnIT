@@ -109,7 +109,7 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-blue-900  flex items-center justify-center p-4">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -130,12 +130,10 @@ export const LoginForm = () => {
 
         <Card className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
           <CardHeader className="text-center pb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
-              <ShieldCheckIcon className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-              {isResetPassword ? "Reset Password" : "MinnIT Portal"}
+            <h1 className="text-3xl font-bold w-full bg-blue-400 shadow-2xl rounded-2xl items-center justify-center bg-clip-text text-transparent mb-2">
+              {isResetPassword ? "Reset Password" : "MinnIT "}
             </h1>
+
             <p className="text-gray-300 font-medium">
               {isResetPassword
                 ? "Enter your email to receive a password reset link"
@@ -229,7 +227,7 @@ export const LoginForm = () => {
               <Button
                 type="submit"
                 disabled={isLoading || authLoading}
-                className="w-full py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full py-3 text-base font-semibold rounded-xl bg-blue-600 hover:bg-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 {isLoading || authLoading ? (
                   <div className="flex items-center justify-center space-x-2">

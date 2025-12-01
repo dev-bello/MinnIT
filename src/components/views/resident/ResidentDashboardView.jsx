@@ -1,47 +1,82 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { UserPlusIcon, SendIcon, CheckCircleIcon } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { UserPlusIcon, SendIcon, CheckCircleIcon } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { supabase } from "../../../lib/supabase";
+import { formatPhoneNumber } from "../../../lib/utils";
 
-export const InviteVisitorView = () => {
+export const ResidentDashboardView = () => {
   const { inviteVisitor } = useAuth();
   const [formData, setFormData] = useState({
-    visitor_name: '',
-    visitor_phone: '',
-    visitor_email: '',
-    visit_date: '',
-    visit_time: '',
-    purpose: '',
+    visitor_name: "",
+    visitor_phone: "",
+    purpose: "",
   });
   const [inviteSent, setInviteSent] = useState(false);
   const [generatedInvite, setGeneratedInvite] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (generatedInvite) {
+      const sendOtp = async () => {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          const response = await fetch(
+            "https://xgcpjzxgwiotekhwbkwg.supabase.co/functions/v1/send-termii-otp",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                visitor_phone: generatedInvite.visitor_phone,
+                otp_code: generatedInvite.otp_code,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to send OTP");
+          }
+        } catch (error) {
+          console.error("Error sending OTP:", error);
+        }
+      };
+
+      sendOtp();
+    }
+  }, [generatedInvite]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+    setIsSubmitting(true);
+
     try {
-      const invite = await inviteVisitor(formData);
+      const formattedFormData = {
+        ...formData,
+        visitor_phone: formatPhoneNumber(formData.visitor_phone),
+      };
+      const invite = await inviteVisitor(formattedFormData);
       setGeneratedInvite(invite);
       setInviteSent(true);
     } catch (error) {
-      console.error('Error creating invite:', error);
-      alert('Error creating visitor invite. Please try again.');
+      console.error("Error creating invite:", error);
+      alert("Error creating visitor invite. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      visitor_name: '',
-      visitor_phone: '',
-      visitor_email: '',
-      visit_date: '',
-      visit_time: '',
-      purpose: '',
+      visitor_name: "",
+      visitor_phone: "",
+      purpose: "",
     });
     setInviteSent(false);
     setGeneratedInvite(null);
@@ -63,47 +98,38 @@ export const InviteVisitorView = () => {
             <p className="text-sm sm:text-base text-green-700 mb-4">
               Your visitor has been registered with the following details:
             </p>
-            
+
             <div className="bg-white p-3 sm:p-4 rounded-lg border mb-4">
               <div className="space-y-2 text-xs sm:text-sm text-left">
                 <div className="flex justify-between">
                   <span className="font-medium text-gray-600">Visitor:</span>
-                  <span className="text-gray-800 truncate ml-2">{generatedInvite.visitor_name}</span>
+                  <span className="text-gray-800 truncate ml-2">
+                    {generatedInvite.visitor_name}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium text-gray-600">Phone:</span>
-                  <span className="text-gray-800 truncate ml-2">{generatedInvite.visitor_phone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-600">Date:</span>
-                  <span className="text-gray-800">{generatedInvite.visit_date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-600">Time:</span>
-                  <span className="text-gray-800">{generatedInvite.visit_time}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-600">OTP Code:</span>
-                  <span className="text-gray-800 font-mono font-bold text-lg">{generatedInvite.otp_code}</span>
+                  <span className="text-gray-800 truncate ml-2">
+                    {generatedInvite.visitor_phone}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium text-gray-600">Invite ID:</span>
-                  <span className="text-gray-800 font-mono">{generatedInvite.unique_id}</span>
+                  <span className="text-gray-800 font-mono">
+                    {generatedInvite.unique_id}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
               <p className="text-blue-800 text-xs sm:text-sm">
-                <strong>Important:</strong> Share the OTP code ({generatedInvite.otp_code}) with your visitor. 
-                They will need this code to gain entry at the gate.
+                <strong>Important:</strong> An OTP code has been sent to your
+                visitor. They will need this code to gain entry at the gate.
               </p>
             </div>
 
-            <Button
-              onClick={resetForm}
-              className="button-primary mobile-full"
-            >
+            <Button onClick={resetForm} className="button-primary mobile-full">
               Send Another Invitation
             </Button>
           </CardContent>
@@ -138,7 +164,12 @@ export const InviteVisitorView = () => {
                 <input
                   type="text"
                   value={formData.visitor_name}
-                  onChange={(e) => setFormData({ ...formData, visitor_name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      visitor_name: e.target.value,
+                    })
+                  }
                   className="input-modern w-full"
                   placeholder="Enter full name"
                   required
@@ -151,50 +182,14 @@ export const InviteVisitorView = () => {
                 <input
                   type="tel"
                   value={formData.visitor_phone}
-                  onChange={(e) => setFormData({ ...formData, visitor_phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      visitor_phone: e.target.value,
+                    })
+                  }
                   className="input-modern w-full"
-                  placeholder="+234 xxx xxx xxxx"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Visitor Email (Optional)
-              </label>
-              <input
-                type="email"
-                value={formData.visitor_email}
-                onChange={(e) => setFormData({ ...formData, visitor_email: e.target.value })}
-                className="input-modern w-full"
-                placeholder="visitor@email.com"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Visit Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.visit_date}
-                  onChange={(e) => setFormData({ ...formData, visit_date: e.target.value })}
-                  className="input-modern w-full"
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Visit Time *
-                </label>
-                <input
-                  type="time"
-                  value={formData.visit_time}
-                  onChange={(e) => setFormData({ ...formData, visit_time: e.target.value })}
-                  className="input-modern w-full"
+                  placeholder="080XXXXXXXX, 070XXXXXXXXX"
                   required
                 />
               </div>
@@ -206,7 +201,9 @@ export const InviteVisitorView = () => {
               </label>
               <select
                 value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, purpose: e.target.value })
+                }
                 className="input-modern w-full"
                 required
               >
@@ -222,10 +219,10 @@ export const InviteVisitorView = () => {
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="button-primary mobile-full"
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   <span>Creating Invitation...</span>
@@ -238,24 +235,6 @@ export const InviteVisitorView = () => {
               )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Information Card */}
-      <Card className="glass-effect rounded-2xl shadow-soft border-0">
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-neutral-800 font-display">
-            How It Works
-          </h3>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-neutral-600 space-y-2 text-sm">
-            <li>• Fill out the visitor information form above</li>
-            <li>• The system will generate a unique OTP code for your visitor</li>
-            <li>• Share the OTP code with your visitor via phone or message</li>
-            <li>• Guards can verify the visitor using the OTP code at the gate</li>
-            <li>• The invitation is valid only for the specified date and time</li>
-          </ul>
         </CardContent>
       </Card>
     </div>

@@ -9,7 +9,6 @@ import { GuardManagement } from "../../components/views/admin/GuardManagement";
 import { ResidentManagement } from "../../components/views/admin/ResidentManagement";
 import { ScanCodeView } from "../../components/views/guard/ScanCodeView";
 import { VerifyOTPView } from "../../components/views/guard/VerifyOTPView";
-import { InviteVisitorView } from "../../components/views/resident/InviteVisitorView";
 import { MyInvitesView } from "../../components/views/resident/MyInvitesView";
 import { ProfileView } from "../../components/views/ProfileView";
 import { Button } from "../../components/ui/button";
@@ -89,7 +88,7 @@ export const HistoryFrame = () => {
         return (
           <div className="space-y-4 sm:space-y-6">
             <VisitorHistorySection />
-            <VisitorTableSection userRole={user?.role} />
+            <VisitorTableSection userRole={userProfile?.role} />
           </div>
         );
 

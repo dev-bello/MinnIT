@@ -232,7 +232,7 @@ export const db = {
 
   async createVisitorInvite(invite) {
     // Generate OTP
-    const { data: otpData } = await supabase.rpc("generate_otp");
+    const otpData = Math.floor(100000 + Math.random() * 900000).toString();
 
     const inviteWithOtp = {
       ...invite,

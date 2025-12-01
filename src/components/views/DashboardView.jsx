@@ -23,6 +23,7 @@ import {
   RefreshCwIcon,
   AlertCircleIcon,
 } from "lucide-react";
+import { ResidentDashboardView } from "./resident/ResidentDashboardView";
 
 export const DashboardView = ({ onViewChange }) => {
   const { userProfile, getUserRole } = useAuth();
@@ -130,26 +131,7 @@ export const DashboardView = ({ onViewChange }) => {
       },
     ];
   } else if (role === "resident") {
-    allLogs = [
-      {
-        time: "10:30 AM",
-        action: "Visitor invited",
-        type: "success",
-        icon: UserPlusIcon,
-      },
-      {
-        time: "09:45 AM",
-        action: "Invitation sent",
-        type: "info",
-        icon: ActivityIcon,
-      },
-      {
-        time: "09:00 AM",
-        action: "Portal accessed",
-        type: "info",
-        icon: ActivityIcon,
-      },
-    ];
+    return <ResidentDashboardView />;
   }
 
   const logsToShow = showAllLogs ? allLogs : allLogs.slice(0, 5);
@@ -283,8 +265,7 @@ export const DashboardView = ({ onViewChange }) => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-neutral-800 mb-2">
-              Welcome back,{" "}
-              <span className="gradient-text">{userProfile?.full_name}</span>
+              Welcome back
             </h2>
             <p className="text-sm sm:text-base text-neutral-600 font-medium">
               Here's what's happening in your workspace today
